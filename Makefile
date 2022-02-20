@@ -1,14 +1,14 @@
--include Makefile.inc
 BASE_DIR=$(shell pwd)
 SRC_DIR=$(BASE_DIR)/src
 BUILD_DIR?=$(BASE_DIR)/build
 BUILDIT_DIR?=$(BASE_DIR)/buildit
+INCLUDE_DIR=$(BASE_DIR)/include
 
 SAMPLES_DIR=$(BASE_DIR)/samples
 
-INCLUDES=$(wildcard $(BUILDIT_DIR)/include/*.h) $(wildcard $(BUILDIT_DIR)/include/*/*.h)
+INCLUDES=$(wildcard $(INCLUDE_DIR)/*.h) $(wildcard $(INCLUDE_DIR)/*/*.h) $(wildcard $(BUILDIT_DIR)/include/*.h) $(wildcard $(BUILDIT_DIR)/include/*/*.h)
 
-INCLUDE_FLAG=-I$(BUILDIT_DIR)/include
+INCLUDE_FLAG=-I$(INCLUDE_DIR) -I$(BUILDIT_DIR)/include
 
 SRCS=$(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/*/*.cpp)
 SAMPLES_SRCS=$(wildcard $(SAMPLES_DIR)/*.cpp)
@@ -17,6 +17,7 @@ SAMPLES=$(subst $(SAMPLES_DIR),$(BUILD_DIR),$(SAMPLES_SRCS:.cpp=))
 
 $(shell mkdir -p $(BUILD_DIR))
 $(shell mkdir -p $(BUILD_DIR)/samples)
+$(shell mkdir -p $(BUILD_DIR)/conv_functions)
 
 BUILDIT_LIBRARY_NAME=buildit
 BUILDIT_LIBRARY_PATH=$(BUILDIT_DIR)/build
@@ -42,6 +43,7 @@ subsystem:
 	make -C $(BUILDIT_DIR)
 
 .PRECIOUS: $(BUILD_DIR)/samples/%.o
+.PRECIOUS: $(BUILD_DIR)/conv_functions/%.o
 
 $(BUILD_DIR)/samples/%.o: $(SAMPLES_DIR)/%.cpp $(INCLUDES)
 	$(CXX) $(CFLAGS) $< -o $@ $(INCLUDE_FLAG) -c 
@@ -56,6 +58,9 @@ executables: $(SAMPLES)
 
 $(LIBRARY): $(OBJS)
 	ar rv $(LIBRARY) $(OBJS)	
+
+$(BUILD_DIR)/conv_functions/%.o: $(SRC_DIR)/conv_functions/%.cpp $(INCLUDES)
+	$(CXX) $(CFLAGS) $< -o $@ $(INCLUDE_FLAG) -c
 
 run: executables
 	./build/sample1
