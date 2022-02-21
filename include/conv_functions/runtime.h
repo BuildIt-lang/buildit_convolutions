@@ -9,8 +9,8 @@ using builder::static_var;
 
 namespace conv {
 namespace runtime {
-    extern dyn_var<int*(int)> malloc;
-    extern dyn_var<void(int*)> free;
+    extern dyn_var<int*(int)> conv_malloc;
+    extern dyn_var<void(int*)> conv_free;
 }
 }
 

@@ -2,7 +2,7 @@
 
 namespace conv {
 namespace runtime {
-    dyn_var<int*(int)> malloc("conv_runtime::malloc");
-    dyn_var<void(int*)> free("conv_runtime::free");
+    dyn_var<int*(int)> conv_malloc("conv_runtime::conv_malloc");
+    dyn_var<void(int*)> conv_free("conv_runtime::conv_free");
 }
 }

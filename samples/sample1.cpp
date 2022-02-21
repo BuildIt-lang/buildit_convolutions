@@ -16,9 +16,9 @@ static void run_conv2d() {
     dyn_var<int> weight_size = 3;
     dyn_var<int> output_size = input_size - weight_size + 1;
 
-    dyn_var<int*> input = conv::runtime::malloc((int)sizeof(int) * input_size * input_size);
-    dyn_var<int*> weight = conv::runtime::malloc((int)sizeof(int) * weight_size * weight_size);
-    dyn_var<int*> output = conv::runtime::malloc((int)sizeof(int) * output_size * output_size);
+    dyn_var<int*> input = conv::runtime::conv_malloc((int)sizeof(int) * input_size * input_size);
+    dyn_var<int*> weight = conv::runtime::conv_malloc((int)sizeof(int) * weight_size * weight_size);
+    dyn_var<int*> output = conv::runtime::conv_malloc((int)sizeof(int) * output_size * output_size);
 
     // generate input
     for (dyn_var<int> i = 0; i < input_size; i = i + 1) {
@@ -35,16 +35,16 @@ static void run_conv2d() {
     }
     conv2d(input, weight, output, input_size, weight_size, output_size);
 
-    conv::runtime::free(input);
-    conv::runtime::free(weight);
-    conv::runtime::free(output);
+    conv::runtime::conv_free(input);
+    conv::runtime::conv_free(weight);
+    conv::runtime::conv_free(output);
 }
 
 int main(int argc, char* argv[]) {
     std::ofstream code_file;
     code_file.open("./generated_code/sample1.cpp");
     auto ast = builder::builder_context().extract_function_ast(run_conv2d, "run_conv2d");
-    pipeline::generate_conv_code(ast, code_file);
+    pipeline::generate_conv_code(ast, code_file, "run_conv2d");
     code_file.close();
 	block::c_code_generator::generate_code(ast, std::cout, 0);
 	return 0;

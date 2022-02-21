@@ -4,9 +4,9 @@ void run_conv2d (void) {
   int var0 = 6;
   int var1 = 3;
   int var2 = (var0 - var1) + 1;
-  int* var3 = conv_runtime::malloc((4 * var0) * var0);
-  int* var4 = conv_runtime::malloc((4 * var1) * var1);
-  int* var5 = conv_runtime::malloc((4 * var2) * var2);
+  int* var3 = conv_runtime::conv_malloc((4 * var0) * var0);
+  int* var4 = conv_runtime::conv_malloc((4 * var1) * var1);
+  int* var5 = conv_runtime::conv_malloc((4 * var2) * var2);
   for (int var6 = 0; var6 < var0; var6 = var6 + 1) {
     for (int var7 = 0; var7 < var0; var7 = var7 + 1) {
       var3[(var6 * var0) + var7] = (var6 * var0) + var7;
@@ -33,8 +33,12 @@ void run_conv2d (void) {
       }
     }
   }
-  conv_runtime::free(var3);
-  conv_runtime::free(var4);
-  conv_runtime::free(var5);
+  conv_runtime::conv_free(var3);
+  conv_runtime::conv_free(var4);
+  conv_runtime::conv_free(var5);
 }
 
+int main() {
+	run_conv2d();
+	return 0;
+}
