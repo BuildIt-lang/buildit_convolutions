@@ -1,8 +1,13 @@
+#ifndef MEM_ALLOCATION_H
+#define MEM_ALLOCATION_H
+
 namespace conv_runtime {
-    static void* malloc(int size) {
-        return malloc(size);
+    static int* malloc(int size) {
+        return (int*)malloc(size);
     }
     static void free(int* ptr) {
         free(ptr);
     }
 }
+
+#endif

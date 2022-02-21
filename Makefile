@@ -18,6 +18,7 @@ SAMPLES=$(subst $(SAMPLES_DIR),$(BUILD_DIR),$(SAMPLES_SRCS:.cpp=))
 $(shell mkdir -p $(BUILD_DIR))
 $(shell mkdir -p $(BUILD_DIR)/samples)
 $(shell mkdir -p $(BUILD_DIR)/conv_functions)
+$(shell mkdir -p $(BUILD_DIR)/pipeline)
 
 BUILDIT_LIBRARY_NAME=buildit
 BUILDIT_LIBRARY_PATH=$(BUILDIT_DIR)/build
@@ -44,6 +45,7 @@ subsystem:
 
 .PRECIOUS: $(BUILD_DIR)/samples/%.o
 .PRECIOUS: $(BUILD_DIR)/conv_functions/%.o
+.PRECIOUS: $(BUILD_DIR)/pipeline/%.o
 
 $(BUILD_DIR)/samples/%.o: $(SAMPLES_DIR)/%.cpp $(INCLUDES)
 	$(CXX) $(CFLAGS) $< -o $@ $(INCLUDE_FLAG) -c 
@@ -60,6 +62,9 @@ $(LIBRARY): $(OBJS)
 	ar rv $(LIBRARY) $(OBJS)	
 
 $(BUILD_DIR)/conv_functions/%.o: $(SRC_DIR)/conv_functions/%.cpp $(INCLUDES)
+	$(CXX) $(CFLAGS) $< -o $@ $(INCLUDE_FLAG) -c
+
+$(BUILD_DIR)/pipeline/%.o: $(SRC_DIR)/pipeline/%.cpp $(INCLUDES)
 	$(CXX) $(CFLAGS) $< -o $@ $(INCLUDE_FLAG) -c
 
 run: executables

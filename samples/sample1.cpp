@@ -1,8 +1,12 @@
+#include <fstream>
+
 #include "conv_functions/conv2d.h"
 #include "conv_functions/runtime.h"
 #include "blocks/c_code_generator.h"
 #include "builder/static_var.h"
 #include "builder/dyn_var.h"
+#include "pipeline/conv.h"
+
 
 using builder::dyn_var;
 using builder::static_var;
@@ -37,6 +41,11 @@ static void run_conv2d() {
 }
 
 int main(int argc, char* argv[]) {
-	block::c_code_generator::generate_code(builder::builder_context().extract_function_ast(run_conv2d, "run_conv2d"), std::cout, 0);
+    std::ofstream code_file;
+    code_file.open("./generated_code/sample1.cpp");
+    auto ast = builder::builder_context().extract_function_ast(run_conv2d, "run_conv2d");
+    pipeline::generate_conv_code(ast, code_file);
+    code_file.close();
+	block::c_code_generator::generate_code(ast, std::cout, 0);
 	return 0;
 }
