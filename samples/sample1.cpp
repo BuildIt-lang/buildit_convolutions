@@ -3,6 +3,7 @@
 #include "conv_functions/conv2d.h"
 #include "conv_functions/runtime.h"
 #include "blocks/c_code_generator.h"
+#include "blocks/rce.h"
 #include "builder/static_var.h"
 #include "builder/dyn_var.h"
 #include "pipeline/conv.h"
@@ -12,8 +13,8 @@ using builder::dyn_var;
 using builder::static_var;
 
 static void run_conv2d() {
-    dyn_var<int> input_size = 6;
-    dyn_var<int> weight_size = 3;
+    dyn_var<int> input_size = 10;
+    dyn_var<int> weight_size = 5;
     dyn_var<int> output_size = input_size - weight_size + 1;
 
     dyn_var<int*> input = conv::runtime::conv_malloc((int)sizeof(int) * input_size * input_size);
@@ -33,7 +34,17 @@ static void run_conv2d() {
             weight[i * weight_size + j] = i * weight_size + j;
         }
     }
-    conv2d(input, weight, output, input_size, weight_size, output_size);
+
+    static_var<int> n_iters = 100;
+
+    conv::runtime::start_timer();
+    for (dyn_var<int> i = 0; i < n_iters; i = i + 1) {
+        conv2d(input, weight, output, input_size, weight_size, output_size);
+    }
+    dyn_var<float> t = conv::runtime::stop_timer() / n_iters;
+    conv::runtime::print_time(t);
+
+    conv::runtime::print_matrix(output, output_size);
 
     conv::runtime::conv_free(input);
     conv::runtime::conv_free(weight);
