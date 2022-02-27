@@ -35,7 +35,7 @@ endif
 
 LIBRARY=$(BUILD_DIR)/lib$(LIBRARY_NAME).a
 
-CFLAGS+=-Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wmissing-declarations -Woverloaded-virtual -pedantic-errors -Wno-deprecated -Wdelete-non-virtual-dtor -Werror
+CFLAGS+=-Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Woverloaded-virtual -pedantic-errors -Wno-deprecated -Wdelete-non-virtual-dtor -Werror
 
 all: executables 
 
@@ -72,4 +72,4 @@ run: executables
 
 clean:
 	rm -rf $(BUILD_DIR)
-	rm -r $(BASE_DIR)/generated_code/*
+	# rm -r $(BASE_DIR)/generated_code/*

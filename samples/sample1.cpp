@@ -39,7 +39,7 @@ static void run_conv2d() {
 
     conv::runtime::start_timer();
     for (dyn_var<int> i = 0; i < n_iters; i = i + 1) {
-        conv2d(input, weight, output, input_size, weight_size, output_size);
+        conv2d_nxn(input, weight, output, input_size, weight_size, output_size);
     }
     dyn_var<float> t = conv::runtime::stop_timer() / n_iters;
     conv::runtime::print_time(t);
