@@ -8,7 +8,7 @@
 using builder::dyn_var;
 using conv::TensorT;
 
-TensorT conv2d(TensorT input, TensorT weight, int stride, int padding, int dilation, int groups) {
+TensorT conv2d(TensorT input, TensorT weight, dyn_var<int> stride, dyn_var<int> padding, dyn_var<int> dilation, dyn_var<int> groups) {
 
     TensorT output;
     output.width = input.width - weight.width + 1;
