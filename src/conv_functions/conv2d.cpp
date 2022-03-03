@@ -7,22 +7,24 @@
 
 using builder::dyn_var;
 using conv::TensorT;
+using conv::ConvOptions;
 
-TensorT conv2d(TensorT input, TensorT weight, dyn_var<int> stride, dyn_var<int> padding, dyn_var<int> dilation, dyn_var<int> groups) {
+TensorT conv2d(TensorT input, TensorT weight, ConvOptions opt) {
 
     TensorT output;
-    output.width = input.width - weight.width + 1;
-    output.height = input.height - weight.height + 1;
+    output.height = (input.height - weight.height) / opt.stride[0] + 1;
+    output.width = (input.width - weight.width) / opt.stride[1] + 1;
     dyn_var<int> size = output.width * output.height;
     output.data = conv::runtime::conv_malloc((int)sizeof(int)*size);
-    
+    dyn_var<int> idx;
     for (dyn_var<int> h = 0; h < output.height; h = h + 1) {
         for (dyn_var<int> w = 0; w < output.width; w = w + 1) {
-            output.data[h * output.width + w] = 0;
+            idx =  h * output.width + w;
+            output.data[idx] = 0;
             for (dyn_var<int> i = 0; i < weight.height; i = i + 1){
                 for (dyn_var<int> j = 0; j < weight.width; j = j + 1) {
-                    output.data[h * output.width + w] = output.data[h * output.width + w] +
-                    input.data[(h+i) * input.width + (w+j)] * weight.data[i * weight.width + j];
+                    output.data[idx] = output.data[idx] +
+                    input.data[(h * opt.stride[0] + i) * input.width + (w * opt.stride[1] + j)] * weight.data[i * weight.width + j];
                 }
             }
         }

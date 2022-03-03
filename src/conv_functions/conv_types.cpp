@@ -2,4 +2,5 @@
 
 namespace conv {
     const char tensor_t_name[] = TENSOR_T_NAME;
+    const char convoptions_t_name[] = CONVOPTIONS_T_NAME;
 }

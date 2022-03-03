@@ -15,4 +15,11 @@ struct TensorT {
     }
 };
 
+struct ConvOptions {
+    int* stride;
+    int* padding;
+    int* dilation;
+    int groups;
+};
+
 }

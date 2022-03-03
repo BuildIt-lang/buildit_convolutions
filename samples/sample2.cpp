@@ -38,18 +38,18 @@ static void run_conv2d() {
             weight.data[i * weight.width + j] = i * weight.width + j;
         }
     }
+    
 
-    TensorT output = conv2d(input, weight, 1, 0, 1, 1);
+    // TensorT output = conv2d(input, weight, options);
 
-    // conv::runtime::print_matrix(output.data, output.width);
-    output.print();
+    // output.print();
 
     input.print();
     weight.print();
 
     conv::runtime::conv_free(input.data);
     conv::runtime::conv_free(weight.data);
-    conv::runtime::conv_free(output.data);
+    // conv::runtime::conv_free(output.data);
 }
 
 
