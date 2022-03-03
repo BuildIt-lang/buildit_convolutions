@@ -12,8 +12,8 @@ using conv::ConvOptions;
 TensorT conv2d(TensorT input, TensorT weight, ConvOptions opt) {
 
     TensorT output;
-    output.height = (input.height - weight.height) / opt.stride[0] + 1;
-    output.width = (input.width - weight.width) / opt.stride[1] + 1;
+    output.height = (input.height - opt.dilation[0] * (weight.height - 1) - 1) / opt.stride[0] + 1;
+    output.width = (input.width - opt.dilation[1] * (weight.width - 1) - 1) / opt.stride[1] + 1;
     dyn_var<int> size = output.width * output.height;
     output.data = conv::runtime::conv_malloc((int)sizeof(int)*size);
     dyn_var<int> idx;
@@ -24,7 +24,7 @@ TensorT conv2d(TensorT input, TensorT weight, ConvOptions opt) {
             for (dyn_var<int> i = 0; i < weight.height; i = i + 1){
                 for (dyn_var<int> j = 0; j < weight.width; j = j + 1) {
                     output.data[idx] = output.data[idx] +
-                    input.data[(h * opt.stride[0] + i) * input.width + (w * opt.stride[1] + j)] * weight.data[i * weight.width + j];
+                    input.data[(h * opt.stride[0] + i * opt.dilation[0]) * input.width + (w * opt.stride[1] + j * opt.dilation[1])] * weight.data[i * weight.width + j];
                 }
             }
         }
