@@ -8,6 +8,7 @@
 using namespace torch;
 using conv_runtime::TensorT;
 using conv_runtime::ConvOptions;
+using conv_runtime::PaddingT;
 namespace F = nn::functional;
 
 int default_padding[] = {0, 0};
@@ -19,7 +20,7 @@ int default_in_channels = 1;
 int default_out_channels = 1;
 
 void compare(Tensor expected, TensorT<int> result, string test_name, string test_details) {
-    std::cout <<"Running test: " << test_name << " " << test_details;
+    std::cout << "Running test: " << test_name << " " << test_details;
     assert (result.height == expected.size(2));
     assert (result.width == expected.size(3));
     int w = result.width;
@@ -119,34 +120,64 @@ void test_stride_dilation() {
     test_conv2d(iw, ih, ww, wh, default_batch_sz, default_in_channels, default_out_channels, conv_options, torch_options, "stride and dilation", "");
 }
 
-void test_padding() {
-    int padding[2] = {3, 2};
+void test_padding_arr() {
+    int pad_arr[2] = {1, 2};
+    PaddingT padding = PaddingT(pad_arr);
     ConvOptions conv_options = {.stride = default_stride, .padding = padding, .dilation = default_dilation, .groups = default_groups};
     F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
-    ExpandingArray<2> torch_padding = convert_to_expanding_array(padding);
+    ExpandingArray<2> torch_padding = convert_to_expanding_array(pad_arr);
     torch_options = torch_options.padding(torch_padding);
-    int iw = 15;
-    int ih = 20;
+    int iw = 5;
+    int ih = 5;
     int ww = 2;
     int wh = 3;
-    test_conv2d(iw, ih, ww, wh, default_batch_sz, default_in_channels, default_out_channels, conv_options, torch_options, "padding", "");
+    test_conv2d(iw, ih, ww, wh, default_batch_sz, default_in_channels, default_out_channels, conv_options, torch_options, "padding", "arr");
+}
+
+void test_padding_same() {
+    char pad_type[] = "same";
+    PaddingT padding = PaddingT(pad_type);
+    ConvOptions conv_options = {.stride = default_stride, .padding = padding, .dilation = default_dilation, .groups = default_groups};
+    F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
+    torch_options = torch_options.padding(torch::kSame);
+    int iw = 5;
+    int ih = 5;
+    int ww = 2;
+    int wh = 3;
+    test_conv2d(iw, ih, ww, wh, default_batch_sz, default_in_channels, default_out_channels, conv_options, torch_options, "padding", "same");
 }
 
 void test_stride_dilation_padding() {
     int dilation[2] = {3, 2};
     int stride[2] = {2, 3};
-    int padding[2] = {3, 4};
+    int pad_arr[2] = {3, 4};
+    PaddingT padding = PaddingT(pad_arr);
     ConvOptions conv_options = {.stride = stride, .padding = padding, .dilation = dilation, .groups = default_groups};
     F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
     ExpandingArray<2> torch_dilation = convert_to_expanding_array(dilation);
     ExpandingArray<2> torch_stride = convert_to_expanding_array(stride);
-    ExpandingArray<2> torch_padding = convert_to_expanding_array(padding);
+    ExpandingArray<2> torch_padding = convert_to_expanding_array(pad_arr);
     torch_options = torch_options.dilation(torch_dilation).stride(torch_stride).padding(torch_padding);
     int iw = 15;
     int ih = 20;
     int ww = 2;
     int wh = 3;
     test_conv2d(iw, ih, ww, wh, default_batch_sz, default_in_channels, default_out_channels, conv_options, torch_options, "stride, dilation, padding", "");
+}
+
+void test_dilation_padding_same() {
+    int dilation[2] = {3, 2};
+    char pad_type[] = "same";
+    PaddingT padding = PaddingT(pad_type);
+    ConvOptions conv_options = {.stride = default_stride, .padding = padding, .dilation = dilation, .groups = default_groups};
+    F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
+    ExpandingArray<2> torch_dilation = convert_to_expanding_array(dilation);
+    torch_options = torch_options.dilation(torch_dilation).padding(torch::kSame);
+    int iw = 15;
+    int ih = 20;
+    int ww = 2;
+    int wh = 3;
+    test_conv2d(iw, ih, ww, wh, default_batch_sz, default_in_channels, default_out_channels, conv_options, torch_options, "dilation, padding", "same");
 }
 
 
@@ -156,4 +187,8 @@ int main() {
     test_stride();
     test_dilation();
     test_stride_dilation();
+    test_padding_arr();
+    test_padding_same();
+    test_stride_dilation_padding();
+    test_dilation_padding_same();
 }

@@ -7,10 +7,46 @@
 
 using builder::dyn_var;
 using conv::TensorT;
+using conv::PaddingT;
 using conv::ConvOptions;
 
-TensorT conv2d(TensorT input, TensorT weight, ConvOptions opt) {
+TensorT pad_input(TensorT input, TensorT weight, ConvOptions opt) {
+    TensorT new_input;
+    if (opt.padding.is_same) {
+        // the output should be the same shape as the input
+        // torch does not support padding "same" with stride other than 1
+        new_input.height = input.height * opt.stride[0] - opt.stride[0] + opt.dilation[0] * (weight.height - 1) + 1;
+        new_input.width = input.width * opt.stride[1] - opt.stride[1] + opt.dilation[1] * (weight.width - 1) + 1;
+        opt.padding.values[0] = (new_input.height - input.height) / 2;
+        opt.padding.values[1] = (new_input.width - input.width) / 2;
+    } else {
+        new_input.height = input.height + 2 * opt.padding.values[0];
+        new_input.width = input.width + 2 * opt.padding.values[1];
+    }
+    dyn_var<int> pad_h = opt.padding.values[0];
+    dyn_var<int> pad_w = opt.padding.values[1];
+    new_input.data = conv::runtime::conv_malloc((int)sizeof(int)*new_input.width*new_input.height);
+    for (dyn_var<int> i = 0; i < new_input.height; i = i + 1) {
+        for (dyn_var<int> j = 0; j < new_input.width; j = j + 1) {
+            if (i < pad_h || j < pad_w || i >= input.height + pad_h || j >= input.width + pad_w) {
+                new_input.data[i * new_input.width + j] = 0; // zero padding
+            } else {
+                new_input.data[i * new_input.width + j] = input.data[(i - pad_h) * input.width + (j - pad_w)];
+            }
+        }
+    }
+    return new_input;
+    
+}
 
+TensorT conv2d(TensorT inp, TensorT weight, ConvOptions opt) {
+
+    TensorT input;
+    if (opt.padding.is_same || opt.padding.values[0] != 0 || opt.padding.values[1] != 0) {
+        input = pad_input(inp, weight, opt);
+    } else {
+        input = inp;
+    }
     TensorT output;
     output.height = (input.height - opt.dilation[0] * (weight.height - 1) - 1) / opt.stride[0] + 1;
     output.width = (input.width - opt.dilation[1] * (weight.width - 1) - 1) / opt.stride[1] + 1;

@@ -15,9 +15,25 @@ struct TensorT {
     }
 };
 
+struct PaddingT {
+    bool is_same;
+    int* values;
+    PaddingT(char* inp_type) {
+        if (strcmp("same", inp_type) != 0) {
+            std::cout << "Invalid padding type." << std::endl;
+            assert(false);
+        }
+        is_same = true;
+    }
+    PaddingT(int* inp_values) {
+        is_same = false;
+        values = inp_values;
+    }
+};
+
 struct ConvOptions {
     int* stride;
-    int* padding;
+    PaddingT padding;
     int* dilation;
     int groups;
 };

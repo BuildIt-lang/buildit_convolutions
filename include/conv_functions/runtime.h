@@ -17,7 +17,6 @@ namespace runtime {
     extern dyn_var<void (float)> print_time;
 
     extern dyn_var<void (int*, int)> print_matrix;
-
 }
 }
 
