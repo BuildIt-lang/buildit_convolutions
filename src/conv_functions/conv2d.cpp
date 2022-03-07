@@ -10,6 +10,10 @@ using conv::TensorT;
 using conv::PaddingT;
 using conv::ConvOptions;
 
+/**
+ * Returns a padded input image. If padding = "same", it calculates the amount
+ * of padding on each side, and then pads the input.
+ * */
 TensorT pad_input(TensorT input, TensorT weight, ConvOptions opt) {
     TensorT new_input;
     if (opt.padding.is_same) {
@@ -26,6 +30,7 @@ TensorT pad_input(TensorT input, TensorT weight, ConvOptions opt) {
     dyn_var<int> pad_h = opt.padding.values[0];
     dyn_var<int> pad_w = opt.padding.values[1];
     new_input.data = conv::runtime::conv_malloc((int)sizeof(int)*new_input.width*new_input.height);
+    builder::annotate("Comment: creating a padded image");
     for (dyn_var<int> i = 0; i < new_input.height; i = i + 1) {
         for (dyn_var<int> j = 0; j < new_input.width; j = j + 1) {
             if (i < pad_h || j < pad_w || i >= input.height + pad_h || j >= input.width + pad_w) {
@@ -53,10 +58,12 @@ TensorT conv2d(TensorT inp, TensorT weight, ConvOptions opt) {
     dyn_var<int> size = output.width * output.height;
     output.data = conv::runtime::conv_malloc((int)sizeof(int)*size);
     dyn_var<int> idx;
+    builder::annotate("Comment: looping over the output");
     for (dyn_var<int> h = 0; h < output.height; h = h + 1) {
         for (dyn_var<int> w = 0; w < output.width; w = w + 1) {
             idx =  h * output.width + w;
             output.data[idx] = 0;
+            builder::annotate("Comment: looping over the kernel");
             for (dyn_var<int> i = 0; i < weight.height; i = i + 1){
                 for (dyn_var<int> j = 0; j < weight.width; j = j + 1) {
                     output.data[idx] = output.data[idx] +
