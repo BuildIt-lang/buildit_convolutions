@@ -27,13 +27,11 @@ struct TensorT: public dyn_var<builder::name<tensor_t_name>> {
     builder::builder operator= (const TensorT &t) {
 		return (*this) = (builder::builder)t;
 	}
-    TensorT* addr(void) {
-		return this;
-	}
 
+    dyn_var<int> batch_size = as_member_of(this, "batch_size");
     dyn_var<int> width = as_member_of(this, "width");
     dyn_var<int> height = as_member_of(this, "height");
-    dyn_var<int*> data = as_member_of(this, "data"); // array of shape width*height
+    dyn_var<int*> data = as_member_of(this, "data"); // array of shape batch_size*width*height
     dyn_var<void(void)> print = as_member_of(this, "print");
 };
 
@@ -47,9 +45,6 @@ struct PaddingT: public dyn_var<builder::name<padding_t_name>> {
     builder::builder operator= (const PaddingT &t) {
         return (*this) = (builder::builder)t;
     }
-    PaddingT* addr(void) {
-		return this;
-	}
 
     dyn_var<bool> is_same = as_member_of(this, "is_same");
     dyn_var<int*> values = as_member_of(this, "values"); // 2D array
@@ -65,9 +60,6 @@ struct ConvOptions: public dyn_var<builder::name<convoptions_t_name>> {
     builder::builder operator= (const ConvOptions &t) {
         return (*this) = (builder::builder)t;
     }
-    ConvOptions* addr(void) {
-		return this;
-	}
 
     // 2D arrays for 2D convolution (height, width)
     dyn_var<int*> stride = as_member_of(this, "stride");
@@ -75,6 +67,7 @@ struct ConvOptions: public dyn_var<builder::name<convoptions_t_name>> {
     dyn_var<int*> dilation = as_member_of(this, "dilation");
     dyn_var<int> groups = as_member_of(this, "groups");
 };
+
 
 
 }

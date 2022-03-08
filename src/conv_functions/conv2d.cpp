@@ -16,6 +16,7 @@ using conv::ConvOptions;
  * */
 TensorT pad_input(TensorT input, TensorT weight, ConvOptions opt) {
     TensorT new_input;
+    new_input.batch_size = input.batch_size;
     if (opt.padding.is_same) {
         // the output should be the same shape as the input
         // torch does not support padding "same" with stride other than 1
@@ -29,14 +30,20 @@ TensorT pad_input(TensorT input, TensorT weight, ConvOptions opt) {
     }
     dyn_var<int> pad_h = opt.padding.values[0];
     dyn_var<int> pad_w = opt.padding.values[1];
-    new_input.data = conv::runtime::conv_malloc((int)sizeof(int)*new_input.width*new_input.height);
+    new_input.data = conv::runtime::conv_malloc((int)sizeof(int)*new_input.width*new_input.height*new_input.batch_size);
+    dyn_var<int> new_idx;
+    dyn_var<int> old_idx;
     builder::annotate("Comment: creating a padded image");
-    for (dyn_var<int> i = 0; i < new_input.height; i = i + 1) {
-        for (dyn_var<int> j = 0; j < new_input.width; j = j + 1) {
-            if (i < pad_h || j < pad_w || i >= input.height + pad_h || j >= input.width + pad_w) {
-                new_input.data[i * new_input.width + j] = 0; // zero padding
-            } else {
-                new_input.data[i * new_input.width + j] = input.data[(i - pad_h) * input.width + (j - pad_w)];
+    for (dyn_var<int> bid = 0; bid < input.batch_size; bid = bid + 1) {
+        for (dyn_var<int> i = 0; i < new_input.height; i = i + 1) {
+            for (dyn_var<int> j = 0; j < new_input.width; j = j + 1) {
+                new_idx = bid * new_input.width * new_input.height + i * new_input.width + j;
+                old_idx = bid * input.width * input.height + (i - pad_h) * input.width + (j - pad_w);
+                if (i < pad_h || j < pad_w || i >= input.height + pad_h || j >= input.width + pad_w) {
+                    new_input.data[new_idx] = 0; // zero padding
+                } else {
+                    new_input.data[new_idx] = input.data[old_idx];
+                }
             }
         }
     }
@@ -55,19 +62,26 @@ TensorT conv2d(TensorT inp, TensorT weight, ConvOptions opt) {
     TensorT output;
     output.height = (input.height - opt.dilation[0] * (weight.height - 1) - 1) / opt.stride[0] + 1;
     output.width = (input.width - opt.dilation[1] * (weight.width - 1) - 1) / opt.stride[1] + 1;
-    dyn_var<int> size = output.width * output.height;
+    output.batch_size = input.batch_size;
+    dyn_var<int> size = output.width * output.height * output.batch_size;
     output.data = conv::runtime::conv_malloc((int)sizeof(int)*size);
-    dyn_var<int> idx;
-    builder::annotate("Comment: looping over the output");
-    for (dyn_var<int> h = 0; h < output.height; h = h + 1) {
-        for (dyn_var<int> w = 0; w < output.width; w = w + 1) {
-            idx =  h * output.width + w;
-            output.data[idx] = 0;
-            builder::annotate("Comment: looping over the kernel");
-            for (dyn_var<int> i = 0; i < weight.height; i = i + 1){
-                for (dyn_var<int> j = 0; j < weight.width; j = j + 1) {
-                    output.data[idx] = output.data[idx] +
-                    input.data[(h * opt.stride[0] + i * opt.dilation[0]) * input.width + (w * opt.stride[1] + j * opt.dilation[1])] * weight.data[i * weight.width + j];
+    dyn_var<int> out_idx;
+    dyn_var<int> in_idx;
+    builder::annotate("Comment: looping over batches");
+    for (dyn_var<int> bid = 0; bid < output.batch_size; bid = bid + 1) {
+        builder::annotate("Comment: looping over the output");
+        for (dyn_var<int> h = 0; h < output.height; h = h + 1) {
+            for (dyn_var<int> w = 0; w < output.width; w = w + 1) {
+                out_idx =  bid * output.height * output.width + h * output.width + w;
+                output.data[out_idx] = 0;
+                builder::annotate("Comment: looping over the kernel");
+                for (dyn_var<int> i = 0; i < weight.height; i = i + 1){
+                    for (dyn_var<int> j = 0; j < weight.width; j = j + 1) {
+                        in_idx = bid * input.width * input.height + (h * opt.stride[0] + i * opt.dilation[0]) * input.width 
+                                    + (w * opt.stride[1] + j * opt.dilation[1]);
+                        output.data[out_idx] = output.data[out_idx] +
+                        input.data[in_idx] * weight.data[i * weight.width + j];
+                    }
                 }
             }
         }

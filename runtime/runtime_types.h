@@ -2,6 +2,7 @@ namespace conv_runtime {
 
 template <typename T>
 struct TensorT {
+    int batch_size;
     int width;
     int height;
     T* data;
