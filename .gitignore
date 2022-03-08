@@ -1,4 +1,5 @@
-generated_code/*
+generated_code/sample1.cpp
+generated_code/sample2.cpp
 build/*
 .vscode
 test/build/*
