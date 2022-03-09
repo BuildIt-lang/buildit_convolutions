@@ -10,5 +10,6 @@ namespace runtime {
     dyn_var<void(float)> print_time("conv_runtime::print_time");
 
     dyn_var<void(int*, int)> print_matrix("conv_runtime::print_matrix");
+
 }
 }

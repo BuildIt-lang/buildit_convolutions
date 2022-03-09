@@ -6,16 +6,17 @@
 #include "conv_functions/conv2d.h"
 
 using builder::dyn_var;
-using conv::TensorT;
 using conv::PaddingT;
 using conv::ConvOptions;
+using conv::ImageT;
+using conv::KernelT; 
 
 /**
  * Returns a padded input image. If padding = "same", it calculates the amount
  * of padding on each side, and then pads the input.
  * */
-TensorT pad_input(TensorT input, TensorT weight, ConvOptions opt) {
-    TensorT new_input;
+ImageT pad_input(ImageT input, KernelT weight, ConvOptions opt) {
+    ImageT new_input;
     new_input.batch_size = input.batch_size;
     if (opt.padding.is_same) {
         // the output should be the same shape as the input
@@ -51,15 +52,15 @@ TensorT pad_input(TensorT input, TensorT weight, ConvOptions opt) {
     
 }
 
-TensorT conv2d(TensorT inp, TensorT weight, ConvOptions opt) {
+ImageT conv2d(ImageT inp, KernelT weight, ConvOptions opt) {
 
-    TensorT input;
+    ImageT input;
     if (opt.padding.is_same || opt.padding.values[0] != 0 || opt.padding.values[1] != 0) {
         input = pad_input(inp, weight, opt);
     } else {
         input = inp;
     }
-    TensorT output;
+    ImageT output;
     output.height = (input.height - opt.dilation[0] * (weight.height - 1) - 1) / opt.stride[0] + 1;
     output.width = (input.width - opt.dilation[1] * (weight.width - 1) - 1) / opt.stride[1] + 1;
     output.batch_size = input.batch_size;

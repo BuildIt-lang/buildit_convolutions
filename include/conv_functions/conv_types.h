@@ -17,6 +17,13 @@ extern const char convoptions_t_name[sizeof(CONVOPTIONS_T_NAME)];
 #define PADDING_T_NAME "conv_runtime::PaddingT"
 extern const char padding_t_name[sizeof(PADDING_T_NAME)];
 
+#define IMAGE_T_NAME "conv_runtime::ImageT<int>"
+extern const char image_t_name[sizeof(IMAGE_T_NAME)];
+
+#define KERNEL_T_NAME "conv_runtime::KernelT<int>"
+extern const char kernel_t_name[sizeof(KERNEL_T_NAME)];
+
+
 // this is a 2D tensor for now
 struct TensorT: public dyn_var<builder::name<tensor_t_name>> {
     typedef dyn_var<builder::name<tensor_t_name>> super;
@@ -29,12 +36,48 @@ struct TensorT: public dyn_var<builder::name<tensor_t_name>> {
 	}
 
     dyn_var<int> batch_size = as_member_of(this, "batch_size");
+    dyn_var<int> channels = as_member_of(this, "channels");
     dyn_var<int> width = as_member_of(this, "width");
     dyn_var<int> height = as_member_of(this, "height");
     dyn_var<int*> data = as_member_of(this, "data"); // array of shape batch_size*width*height
     dyn_var<void(void)> print = as_member_of(this, "print");
 };
 
+struct ImageT: public dyn_var<builder::name<image_t_name>> {
+    typedef dyn_var<builder::name<image_t_name>> super;
+    using super_name = builder::name<image_t_name>;
+    using super::dyn_var;
+    using super::operator=;
+    ImageT(const ImageT &t): super((builder::builder)t) {}
+    builder::builder operator= (const ImageT &t) {
+		return (*this) = (builder::builder)t;
+	}
+
+    dyn_var<int> batch_size = as_member_of(this, "batch_size");
+    dyn_var<int> in_channels = as_member_of(this, "in_channels");
+    dyn_var<int> width = as_member_of(this, "width");
+    dyn_var<int> height = as_member_of(this, "height");
+    dyn_var<int*> data = as_member_of(this, "data");
+    dyn_var<void(void)> print = as_member_of(this, "print");
+};
+
+struct KernelT: public dyn_var<builder::name<kernel_t_name>> {
+    typedef dyn_var<builder::name<kernel_t_name>> super;
+    using super_name = builder::name<kernel_t_name>;
+    using super::dyn_var;
+    using super::operator=;
+    KernelT(const KernelT &t): super((builder::builder)t) {}
+    builder::builder operator= (const KernelT &t) {
+		return (*this) = (builder::builder)t;
+	}
+
+    dyn_var<int> in_channels = as_member_of(this, "in_channels");
+    dyn_var<int> out_channels = as_member_of(this, "out_channels");
+    dyn_var<int> width = as_member_of(this, "width");
+    dyn_var<int> height = as_member_of(this, "height");
+    dyn_var<int*> data = as_member_of(this, "data");
+    dyn_var<void(void)> print = as_member_of(this, "print");
+};
 
 struct PaddingT: public dyn_var<builder::name<padding_t_name>> {
     typedef dyn_var<builder::name<padding_t_name>> super;

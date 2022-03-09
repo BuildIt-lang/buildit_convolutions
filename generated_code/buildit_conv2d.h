@@ -1,10 +1,10 @@
 #include "runtime_functions.h"
 #include "runtime_types.h"
 
-conv_runtime::TensorT<int> buildit_conv2d (conv_runtime::TensorT<int> arg0, conv_runtime::TensorT<int> arg1, conv_runtime::ConvOptions arg2) {
-  conv_runtime::TensorT<int> var3;
+conv_runtime::ImageT<int> buildit_conv2d (conv_runtime::ImageT<int> arg0, conv_runtime::KernelT<int> arg1, conv_runtime::ConvOptions arg2) {
+  conv_runtime::ImageT<int> var3;
   if (((arg2.padding).is_same || ((arg2.padding).values[0] != 0)) || ((arg2.padding).values[1] != 0)) {
-    conv_runtime::TensorT<int> var7;
+    conv_runtime::ImageT<int> var7;
     var7.batch_size = arg0.batch_size;
     if ((arg2.padding).is_same) {
       var7.height = (((arg0.height * arg2.stride[0]) - arg2.stride[0]) + (arg2.dilation[0] * (arg1.height - 1))) + 1;
@@ -46,7 +46,7 @@ conv_runtime::TensorT<int> buildit_conv2d (conv_runtime::TensorT<int> arg0, conv
   } else {
     var3 = arg0;
   }
-  conv_runtime::TensorT<int> var15;
+  conv_runtime::ImageT<int> var15;
   var15.height = (((var3.height - (arg2.dilation[0] * (arg1.height - 1))) - 1) / arg2.stride[0]) + 1;
   var15.width = (((var3.width - (arg2.dilation[1] * (arg1.width - 1))) - 1) / arg2.stride[1]) + 1;
   var15.batch_size = var3.batch_size;

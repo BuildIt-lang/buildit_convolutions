@@ -6,9 +6,10 @@
 #include <vector>
 
 using namespace torch;
-using conv_runtime::TensorT;
 using conv_runtime::ConvOptions;
 using conv_runtime::PaddingT;
+using conv_runtime::ImageT;
+using conv_runtime::KernelT;
 namespace F = nn::functional;
 
 int default_padding[] = {0, 0};
@@ -19,7 +20,7 @@ int default_batch_sz = 1;
 int default_in_channels = 1;
 int default_out_channels = 1;
 
-void compare(Tensor expected, TensorT<int> result, string test_name, string test_details) {
+void compare(Tensor expected, ImageT<int> result, string test_name, string test_details) {
     std::cout << "Running test: " << test_name << " " << test_details;
     assert (result.height == expected.size(2));
     assert (result.width == expected.size(3));
@@ -56,9 +57,9 @@ void test_conv2d(int iw, int ih, int ww, int wh, int batch_size, int in_channels
     // get actual output
     Tensor torch_inp = torch_input.to(torch::kInt32);
     Tensor torch_kernel = torch_weight.to(torch::kInt32);
-    TensorT<int> conv_input = {.batch_size = batch_size, .width = iw, .height = ih, .data = torch_inp.data_ptr<int>()};
-    TensorT<int> conv_weight = {.batch_size = batch_size, .width = ww, .height = wh, .data = torch_kernel.data_ptr<int>()};
-    TensorT<int> conv_output = buildit_conv2d(conv_input, conv_weight, conv_options);
+    ImageT<int> conv_input = {.batch_size = batch_size, .in_channels = in_channels, .width = iw, .height = ih, .data = torch_inp.data_ptr<int>()};
+    KernelT<int> conv_weight = {.out_channels = out_channels, .in_channels = in_channels, .width = ww, .height = wh, .data = torch_kernel.data_ptr<int>()};
+    ImageT<int> conv_output = buildit_conv2d(conv_input, conv_weight, conv_options);
     // conv_output.print();
     compare(torch_output, conv_output, test_name, test_details);
 }

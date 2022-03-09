@@ -14,12 +14,12 @@ using builder::static_var;
 
 
 static void run_conv2d() {
-    TensorT input;
+    ImageT input;
     input.width = 5;
     input.height = 3;
     input.data = conv::runtime::conv_malloc((int)sizeof(int) * input.width * input.height);
 
-    TensorT weight;
+    KernelT weight;
     weight.width = 2;
     weight.height = 2;
     weight.data = conv::runtime::conv_malloc((int)sizeof(int) * weight.width * weight.height);
