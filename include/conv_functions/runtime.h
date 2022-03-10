@@ -10,6 +10,7 @@ using builder::static_var;
 namespace conv {
 namespace runtime {
     extern dyn_var<int*(int)> conv_malloc;
+    extern dyn_var<int*(int, int)> conv_calloc;
     extern dyn_var<void(int*)> conv_free;
 
     extern dyn_var<void (void)> start_timer;
@@ -17,6 +18,8 @@ namespace runtime {
     extern dyn_var<void (float)> print_time;
 
     extern dyn_var<void (int*, int)> print_matrix;
+
+    extern dyn_var<void(int)> conv_assert;
 }
 }
 

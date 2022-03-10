@@ -9,6 +9,9 @@ namespace conv_runtime {
     int* conv_malloc(int size) {
         return (int*) malloc(size);
     }
+    int* conv_calloc(int num, int size) {
+        return (int*) calloc(num, size);
+    }
     void conv_free(int* ptr) {
         free(ptr);
     }

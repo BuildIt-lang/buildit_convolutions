@@ -22,6 +22,8 @@ int default_out_channels = 1;
 
 void compare(Tensor expected, ImageT<int> result, string test_name, string test_details) {
     std::cout << "Running test: " << test_name << " " << test_details;
+    assert(result.batch_size == expected.size(0));
+    assert(result.in_channels == expected.size(1));
     assert (result.height == expected.size(2));
     assert (result.width == expected.size(3));
     int w = result.width;
@@ -66,7 +68,7 @@ void test_conv2d(int iw, int ih, int ww, int wh, int batch_size, int in_channels
 
 // unit tests
 
-void test_default_options(int batch_sz) {
+void test_default_options(int batch_sz, int in_channels) {
     ConvOptions conv_options = {.stride = default_stride, .padding = default_padding, .dilation = default_dilation, .groups = default_groups};
     F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
     int iw[] = {5, 5, 10, 1};
@@ -76,11 +78,11 @@ void test_default_options(int batch_sz) {
     int n_tests = 4;
     string details[] = {"nxn image, nxn kernel", "nxn kernel", "nxn image", "1xn image"};
     for (int i = 0; i < n_tests; i++) {
-        test_conv2d(iw[i], ih[i], ww[i], wh[i], batch_sz, default_in_channels, default_out_channels, conv_options, torch_options, "default_options", details[i]);
+        test_conv2d(iw[i], ih[i], ww[i], wh[i], batch_sz, in_channels, default_out_channels, conv_options, torch_options, "default_options", details[i]);
     }
 }
 
-void test_stride(int batch_sz) {
+void test_stride(int batch_sz, int in_channels) {
     int stride[2] = {2, 1};
     ConvOptions conv_options = {.stride = stride, .padding = default_padding, .dilation = default_dilation, .groups = default_groups};
     F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
@@ -90,10 +92,10 @@ void test_stride(int batch_sz) {
     int ih = 8;
     int ww = 2;
     int wh = 3;
-    test_conv2d(iw, ih, ww, wh, batch_sz, default_in_channels, default_out_channels, conv_options, torch_options, "stride", "");
+    test_conv2d(iw, ih, ww, wh, batch_sz, in_channels, default_out_channels, conv_options, torch_options, "stride", "");
 }
 
-void test_dilation(int batch_sz) {
+void test_dilation(int batch_sz, int in_channels) {
     int dilation[2] = {3, 2};
     ConvOptions conv_options = {.stride = default_stride, .padding = default_padding, .dilation = dilation, .groups = default_groups};
     F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
@@ -103,10 +105,10 @@ void test_dilation(int batch_sz) {
     int ih = 20;
     int ww = 2;
     int wh = 3;
-    test_conv2d(iw, ih, ww, wh, batch_sz, default_in_channels, default_out_channels, conv_options, torch_options, "dilation", "");
+    test_conv2d(iw, ih, ww, wh, batch_sz, in_channels, default_out_channels, conv_options, torch_options, "dilation", "");
 }
 
-void test_stride_dilation(int batch_sz) {
+void test_stride_dilation(int batch_sz, int in_channels) {
     int dilation[2] = {3, 2};
     int stride[2] = {2, 3};
     ConvOptions conv_options = {.stride = stride, .padding = default_padding, .dilation = dilation, .groups = default_groups};
@@ -118,10 +120,10 @@ void test_stride_dilation(int batch_sz) {
     int ih = 20;
     int ww = 2;
     int wh = 3;
-    test_conv2d(iw, ih, ww, wh, batch_sz, default_in_channels, default_out_channels, conv_options, torch_options, "stride and dilation", "");
+    test_conv2d(iw, ih, ww, wh, batch_sz, in_channels, default_out_channels, conv_options, torch_options, "stride and dilation", "");
 }
 
-void test_padding_arr(int batch_sz) {
+void test_padding_arr(int batch_sz, int in_channels) {
     int pad_arr[2] = {1, 2};
     PaddingT padding = PaddingT(pad_arr);
     ConvOptions conv_options = {.stride = default_stride, .padding = padding, .dilation = default_dilation, .groups = default_groups};
@@ -132,10 +134,10 @@ void test_padding_arr(int batch_sz) {
     int ih = 5;
     int ww = 2;
     int wh = 3;
-    test_conv2d(iw, ih, ww, wh, batch_sz, default_in_channels, default_out_channels, conv_options, torch_options, "padding", "arr");
+    test_conv2d(iw, ih, ww, wh, batch_sz, in_channels, default_out_channels, conv_options, torch_options, "padding", "arr");
 }
 
-void test_padding_same(int batch_sz) {
+void test_padding_same(int batch_sz, int in_channels) {
     char pad_type[] = "same";
     PaddingT padding = PaddingT(pad_type);
     ConvOptions conv_options = {.stride = default_stride, .padding = padding, .dilation = default_dilation, .groups = default_groups};
@@ -145,10 +147,10 @@ void test_padding_same(int batch_sz) {
     int ih = 5;
     int ww = 2;
     int wh = 3;
-    test_conv2d(iw, ih, ww, wh, batch_sz, default_in_channels, default_out_channels, conv_options, torch_options, "padding", "same");
+    test_conv2d(iw, ih, ww, wh, batch_sz, in_channels, default_out_channels, conv_options, torch_options, "padding", "same");
 }
 
-void test_stride_dilation_padding(int batch_sz) {
+void test_stride_dilation_padding(int batch_sz, int in_channels) {
     int dilation[2] = {3, 2};
     int stride[2] = {2, 3};
     int pad_arr[2] = {3, 4};
@@ -163,10 +165,10 @@ void test_stride_dilation_padding(int batch_sz) {
     int ih = 20;
     int ww = 2;
     int wh = 3;
-    test_conv2d(iw, ih, ww, wh, batch_sz, default_in_channels, default_out_channels, conv_options, torch_options, "stride, dilation, padding", "");
+    test_conv2d(iw, ih, ww, wh, batch_sz, in_channels, default_out_channels, conv_options, torch_options, "stride, dilation, padding", "");
 }
 
-void test_dilation_padding_same(int batch_sz) {
+void test_dilation_padding_same(int batch_sz, int in_channels) {
     int dilation[2] = {3, 2};
     char pad_type[] = "same";
     PaddingT padding = PaddingT(pad_type);
@@ -178,31 +180,33 @@ void test_dilation_padding_same(int batch_sz) {
     int ih = 20;
     int ww = 2;
     int wh = 3;
-    test_conv2d(iw, ih, ww, wh, batch_sz, default_in_channels, default_out_channels, conv_options, torch_options, "dilation, padding", "same");
+    test_conv2d(iw, ih, ww, wh, batch_sz, in_channels, default_out_channels, conv_options, torch_options, "dilation, padding", "same");
 }
 
-void test_batch_size(int size) {
-    std::cout << "Testing batch size: " << size << std::endl;
-    test_default_options(size);
-    test_stride(size);
-    test_dilation(size);
-    test_stride_dilation(size);
-    test_padding_arr(size);
-    test_padding_same(size);
-    test_stride_dilation_padding(size);
-    test_dilation_padding_same(size);
-    std::cout << "Done testing batch size " << size << std::endl;
+void test_batching_channels(int batch_sz, int in_ch) {
+    std::cout << "Testing batch_size=" << batch_sz << ", in_channels=" << in_ch << std::endl;
+    test_default_options(batch_sz, in_ch);
+    test_stride(batch_sz, in_ch);
+    test_dilation(batch_sz, in_ch);
+    test_stride_dilation(batch_sz, in_ch);
+    test_padding_arr(batch_sz, in_ch);
+    test_padding_same(batch_sz, in_ch);
+    test_stride_dilation_padding(batch_sz, in_ch);
+    test_dilation_padding_same(batch_sz, in_ch);
+    std::cout << "Done" << std::endl;
 }
 
 
 int main() {
-    test_default_options(default_batch_sz);
-    test_stride(default_batch_sz);
-    test_dilation(default_batch_sz);
-    test_stride_dilation(default_batch_sz);
-    test_padding_arr(default_batch_sz);
-    test_padding_same(default_batch_sz);
-    test_stride_dilation_padding(default_batch_sz);
-    test_dilation_padding_same(default_batch_sz);
-    test_batch_size(4);
+    test_default_options(default_batch_sz, default_in_channels);
+    test_stride(default_batch_sz, default_in_channels);
+    test_dilation(default_batch_sz, default_in_channels);
+    test_stride_dilation(default_batch_sz, default_in_channels);
+    test_padding_arr(default_batch_sz, default_in_channels);
+    test_padding_same(default_batch_sz, default_in_channels);
+    test_stride_dilation_padding(default_batch_sz, default_in_channels);
+    test_dilation_padding_same(default_batch_sz, default_in_channels);
+    test_batching_channels(4, default_in_channels); // batching
+    test_batching_channels(default_batch_sz, 4); // in channels
+    test_batching_channels(2, 4); // both batches and in channels
 }

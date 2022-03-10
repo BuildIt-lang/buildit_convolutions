@@ -72,4 +72,3 @@ run: executables
 
 clean:
 	rm -rf $(BUILD_DIR)
-	# rm -r $(BASE_DIR)/generated_code/*

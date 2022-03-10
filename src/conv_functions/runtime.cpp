@@ -3,6 +3,7 @@
 namespace conv {
 namespace runtime {
     dyn_var<int*(int)> conv_malloc("conv_runtime::conv_malloc");
+    dyn_var<int*(int, int)> conv_calloc("conv_runtime::conv_calloc");
     dyn_var<void(int*)> conv_free("conv_runtime::conv_free");
 
     dyn_var<void(void)> start_timer("conv_runtime::start_timer");
@@ -11,5 +12,6 @@ namespace runtime {
 
     dyn_var<void(int*, int)> print_matrix("conv_runtime::print_matrix");
 
+    dyn_var<void(int)> conv_assert("assert");
 }
 }
