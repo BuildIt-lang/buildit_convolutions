@@ -79,22 +79,26 @@ ImageT conv2d(ImageT inp, KernelT weight, ConvOptions opt) {
     output.data = conv::runtime::conv_calloc(size, (int)sizeof(int));
     dyn_var<int> out_idx;
     dyn_var<int> in_idx;
+    dyn_var<int> weight_idx;
     builder::annotate("Comment: looping over batches");
     for (dyn_var<int> bid = 0; bid < output.batch_size; bid = bid + 1) {
-        builder::annotate("comment: looping over in channels");
-        for (dyn_var<int> in_ch = 0; in_ch < input.in_channels; in_ch = in_ch + 1) {
-            builder::annotate("Comment: looping over the output");
-            for (dyn_var<int> h = 0; h < output.height; h = h + 1) {
-                for (dyn_var<int> w = 0; w < output.width; w = w + 1) {
-                    out_idx =  bid * output.height * output.width + h * output.width + w;
-                    // output.data[out_idx] = 0;
-                    builder::annotate("Comment: looping over the kernel");
-                    for (dyn_var<int> i = 0; i < weight.height; i = i + 1){
-                        for (dyn_var<int> j = 0; j < weight.width; j = j + 1) {
-                            in_idx = bid * input.in_channels * input.width * input.height + in_ch * input.width * input.height + (h * opt.stride[0] + i * opt.dilation[0]) * input.width 
-                                        + (w * opt.stride[1] + j * opt.dilation[1]);
-                            output.data[out_idx] = output.data[out_idx] +
-                            input.data[in_idx] * weight.data[in_ch * weight.width * weight.height + i * weight.width + j];
+        builder::annotate("Comment: looping over out channels");
+        for (dyn_var<int> out_ch = 0; out_ch < weight.out_channels; out_ch = out_ch + 1) {
+            builder::annotate("comment: looping over in channels");
+            for (dyn_var<int> in_ch = 0; in_ch < input.in_channels; in_ch = in_ch + 1) {
+                builder::annotate("Comment: looping over the output");
+                for (dyn_var<int> h = 0; h < output.height; h = h + 1) {
+                    for (dyn_var<int> w = 0; w < output.width; w = w + 1) {
+                        out_idx =  bid * output.in_channels * output.height * output.width + out_ch * output.width * output.height + h * output.width + w;
+                        // output.data[out_idx] = 0;
+                        builder::annotate("Comment: looping over the kernel");
+                        for (dyn_var<int> i = 0; i < weight.height; i = i + 1){
+                            for (dyn_var<int> j = 0; j < weight.width; j = j + 1) {
+                                in_idx = bid * input.in_channels * input.width * input.height + in_ch * input.width * input.height + (h * opt.stride[0] + i * opt.dilation[0]) * input.width 
+                                            + (w * opt.stride[1] + j * opt.dilation[1]);
+                                weight_idx = out_ch * weight.in_channels * weight.width * weight.height + in_ch * weight.width * weight.height + i * weight.width + j;
+                                output.data[out_idx] = output.data[out_idx] + input.data[in_idx] * weight.data[weight_idx];
+                            }
                         }
                     }
                 }

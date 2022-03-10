@@ -63,18 +63,23 @@ conv_runtime::ImageT<int> buildit_conv2d (conv_runtime::ImageT<int> arg0, conv_r
   var16.data = conv_runtime::conv_calloc(((var16.width * var16.height) * var16.batch_size) * var16.in_channels, 4);
   int var18;
   int var19;
+  int var20;
   // looping over batches
-  for (int var20 = 0; var20 < var16.batch_size; var20 = var20 + 1) {
-    for (int var21 = 0; var21 < var3.in_channels; var21 = var21 + 1) {
-      // looping over the output
-      for (int var22 = 0; var22 < var16.height; var22 = var22 + 1) {
-        for (int var23 = 0; var23 < var16.width; var23 = var23 + 1) {
-          var18 = (((var20 * var16.height) * var16.width) + (var22 * var16.width)) + var23;
-          // looping over the kernel
-          for (int var24 = 0; var24 < arg1.height; var24 = var24 + 1) {
-            for (int var25 = 0; var25 < arg1.width; var25 = var25 + 1) {
-              var19 = (((((var20 * var3.in_channels) * var3.width) * var3.height) + ((var21 * var3.width) * var3.height)) + (((var22 * arg2.stride[0]) + (var24 * arg2.dilation[0])) * var3.width)) + ((var23 * arg2.stride[1]) + (var25 * arg2.dilation[1]));
-              var16.data[var18] = var16.data[var18] + (var3.data[var19] * arg1.data[(((var21 * arg1.width) * arg1.height) + (var24 * arg1.width)) + var25]);
+  for (int var21 = 0; var21 < var16.batch_size; var21 = var21 + 1) {
+    // looping over out channels
+    for (int var22 = 0; var22 < arg1.out_channels; var22 = var22 + 1) {
+      for (int var23 = 0; var23 < var3.in_channels; var23 = var23 + 1) {
+        // looping over the output
+        for (int var24 = 0; var24 < var16.height; var24 = var24 + 1) {
+          for (int var25 = 0; var25 < var16.width; var25 = var25 + 1) {
+            var18 = (((((var21 * var16.in_channels) * var16.height) * var16.width) + ((var22 * var16.width) * var16.height)) + (var24 * var16.width)) + var25;
+            // looping over the kernel
+            for (int var26 = 0; var26 < arg1.height; var26 = var26 + 1) {
+              for (int var27 = 0; var27 < arg1.width; var27 = var27 + 1) {
+                var19 = (((((var21 * var3.in_channels) * var3.width) * var3.height) + ((var23 * var3.width) * var3.height)) + (((var24 * arg2.stride[0]) + (var26 * arg2.dilation[0])) * var3.width)) + ((var25 * arg2.stride[1]) + (var27 * arg2.dilation[1]));
+                var20 = (((((var22 * arg1.in_channels) * arg1.width) * arg1.height) + ((var23 * arg1.width) * arg1.height)) + (var26 * arg1.width)) + var27;
+                var16.data[var18] = var16.data[var18] + (var3.data[var19] * arg1.data[var20]);
+              }
             }
           }
         }
