@@ -84,7 +84,7 @@ ImageT conv2d(ImageT inp, KernelT weight, ConvOptions opt) {
     for (dyn_var<int> bid = 0; bid < output.batch_size; bid = bid + 1) {
         builder::annotate("Comment: looping over out channels");
         for (dyn_var<int> out_ch = 0; out_ch < weight.out_channels; out_ch = out_ch + 1) {
-            builder::annotate("comment: looping over in channels");
+            builder::annotate("Comment: looping over in channels");
             for (dyn_var<int> in_ch = 0; in_ch < input.in_channels; in_ch = in_ch + 1) {
                 builder::annotate("Comment: looping over the output");
                 for (dyn_var<int> h = 0; h < output.height; h = h + 1) {
@@ -106,18 +106,4 @@ ImageT conv2d(ImageT inp, KernelT weight, ConvOptions opt) {
         }
     }
     return output;
-}
-
-// convolution for NxN matrices
-void conv2d_nxn(dyn_var<int*> input, dyn_var<int*> weight, dyn_var<int*> output, dyn_var<int> input_size, dyn_var<int> weight_size, dyn_var<int> output_size) {
-    for (dyn_var<int> i = 0; i < output_size; i = i + 1) {
-        for (dyn_var<int> j = 0; j < output_size; j = j + 1) {
-            output[i*output_size+j] = 0;
-            for (dyn_var<int> ki = 0; ki < weight_size; ki = ki + 1) {
-                for (dyn_var<int> kj = 0; kj < weight_size; kj = kj + 1) {
-                    output[i*output_size+j] = output[i*output_size+j] + weight[ki*weight_size+kj] * input[(i+ki)*input_size+(j+kj)];
-                }
-            }
-        }
-    }
 }
