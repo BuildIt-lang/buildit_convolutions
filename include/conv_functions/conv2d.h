@@ -3,12 +3,14 @@
 #include "conv_functions/conv_types.h"
 
 using builder::dyn_var;
+using builder::static_var;
 using conv::ConvOptions;
 using conv::PaddingT;
 using conv::ImageT;
 using conv::KernelT;
 
-ImageT pad_input(ImageT input, KernelT weight, ConvOptions opt);
-ImageT conv2d(ImageT input, KernelT weight, ConvOptions options);
+ImageT dyn_pad_input(ImageT input, KernelT weight, ConvOptions opt);
+ImageT dyn_conv2d(ImageT input, KernelT weight, ConvOptions options);
 
-void conv2d_nxn(dyn_var<int*> input, dyn_var<int*> weight, dyn_var<int*> output, dyn_var<int> input_size, dyn_var<int> weight_size, dyn_var<int> output_size);
+ImageT static_pad_input(ImageT input, KernelT weight, int* stride, int* dilation, int* padding, int padding_same);
+ImageT static_conv2d(ImageT inp, KernelT weight, static_var<int*> stride, static_var<int*> dilation, static_var<int*> padding, static_var<int> padding_same);

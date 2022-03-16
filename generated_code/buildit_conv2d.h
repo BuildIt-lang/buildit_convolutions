@@ -31,15 +31,23 @@ conv_runtime::ImageT<int> buildit_conv2d (conv_runtime::ImageT<int> arg0, conv_r
     for (int var12 = 0; var12 < arg0.batch_size; var12 = var12 + 1) {
       for (int var13 = 0; var13 < arg0.in_channels; var13 = var13 + 1) {
         for (int var14 = 0; var14 < var7.height; var14 = var14 + 1) {
-          for (int var15 = 0; var15 < var7.width; var15 = var15 + 1) {
-            var10 = (((((var12 * var7.in_channels) * var7.width) * var7.height) + ((var13 * var7.width) * var7.height)) + (var14 * var7.width)) + var15;
-            var11 = (((((var12 * arg0.in_channels) * arg0.width) * arg0.height) + ((var13 * arg0.width) * arg0.height)) + ((var14 - var8) * arg0.width)) + (var15 - var9);
-            if ((((var14 < var8) || (var15 < var9)) || (var14 >= (arg0.height + var8))) || (var15 >= (arg0.width + var9))) {
-              var7.data[var10] = 0;
-            } else {
-              var7.data[var10] = arg0.data[var11];
+          int var15 = 0;
+          if (var15 < var7.width) {
+            while (1) {
+              var10 = (((((var12 * var7.in_channels) * var7.width) * var7.height) + ((var13 * var7.width) * var7.height)) + (var14 * var7.width)) + var15;
+              var11 = (((((var12 * arg0.in_channels) * arg0.width) * arg0.height) + ((var13 * arg0.width) * arg0.height)) + ((var14 - var8) * arg0.width)) + (var15 - var9);
+              if ((((var14 < var8) || (var15 < var9)) || (var14 >= (arg0.height + var8))) || (var15 >= (arg0.width + var9))) {
+                var7.data[var10] = 0;
+              } else {
+                var7.data[var10] = arg0.data[var11];
+              }
+              var15 = var15 + 1;
+              if (var15 < var7.width) {
+              } else {
+                break;
+              }
             }
-          }
+          } 
         }
       }
     }

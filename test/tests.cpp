@@ -2,8 +2,10 @@
 #include <chrono>
 #include <torch/torch.h>
 #include "buildit_conv2d.h"
+#include "specialized_test_code.h"
+#include "test_types.h"
 #include <assert.h>
-#include <vector>
+
 
 using namespace torch;
 using conv_runtime::ConvOptions;
@@ -66,6 +68,38 @@ void test_conv2d(int iw, int ih, int ww, int wh, int batch_size, int in_channels
     compare(torch_output, conv_output, test_name, test_details);
 }
 
+// testing specialized conv2d
+void test_static_conv2d(TestOptions opt, ImageT<int> (*func)(ImageT<int>, KernelT<int>), string test_name) {
+    int64_t lo = 0;
+    int64_t hi = 100;
+    Tensor torch_input = torch::randint(lo, hi, {opt.batch_size, opt.in_channels, opt.ih, opt.iw}).to(torch::kFloat); // using float here because dilation doesn't work with int in torch
+    Tensor torch_weight = torch::randint(lo, hi, {opt.out_channels, opt.in_channels/default_groups, opt.wh, opt.ww}).to(torch::kFloat);
+    // covert options to torch arrays
+    F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
+    ExpandingArray<2> torch_stride = convert_to_expanding_array(opt.stride);
+    ExpandingArray<2> torch_dilation = convert_to_expanding_array(opt.dilation);
+    torch_options = torch_options.stride(torch_stride).dilation(torch_dilation);
+    if (opt.padding_same == 1) {
+        torch_options = torch_options.padding(torch::kSame);
+    } else {
+        ExpandingArray<2> torch_padding = convert_to_expanding_array(opt.padding);
+        torch_options = torch_options.padding(torch_padding);
+    }
+    // this is expected output
+    Tensor torch_output = F::conv2d(torch_input, torch_weight, torch_options);
+    // std::cout << torch_output << std::endl;
+    // get actual output
+    Tensor torch_inp = torch_input.to(torch::kInt32);
+    Tensor torch_kernel = torch_weight.to(torch::kInt32);
+    ImageT<int> conv_input = {.batch_size = opt.batch_size, .in_channels = opt.in_channels, .width = opt.iw, .height = opt.ih, .data = torch_inp.data_ptr<int>()};
+    KernelT<int> conv_weight = {.out_channels = opt.out_channels, .in_channels = opt.in_channels, .width = opt.ww, .height = opt.wh, .data = torch_kernel.data_ptr<int>()};
+    ImageT<int> conv_output = func(conv_input, conv_weight);
+    // conv_output.print();
+    compare(torch_output, conv_output, test_name, "");
+}
+
+
+
 // unit tests
 
 void test_default_options(int batch_sz, int in_channels, int out_channels) {
@@ -80,6 +114,10 @@ void test_default_options(int batch_sz, int in_channels, int out_channels) {
     for (int i = 0; i < n_tests; i++) {
         test_conv2d(iw[i], ih[i], ww[i], wh[i], batch_sz, in_channels, out_channels, conv_options, torch_options, "default_options", details[i]);
     }
+    // test specialized code
+    TestOptions default_options = {.iw = 5, .ih = 5, .ww = 3, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
+                                    .stride = default_stride, .padding_same = 0, .padding = default_padding, .dilation = default_dilation};
+    test_static_conv2d(default_options, &conv2d_default_im5x5_w3x3, "default_im5x5_w3x3");
 }
 
 void test_stride(int batch_sz, int in_channels, int out_channels) {
@@ -213,4 +251,5 @@ int main() {
     test_batching_channels(default_in_channels, 3, 4); // both in and out channels
     test_batching_channels(5, default_in_channels, 2); // batching and out channels
     test_batching_channels(3, 4, 5); // test all
+
 }
