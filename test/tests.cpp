@@ -95,8 +95,6 @@ void test_static_conv2d(TestOptions opt, ImageT<int> (*func)(int*, int*), string
     Tensor torch_kernel = torch_weight.to(torch::kInt32);
     int* inp_data = torch_inp.data_ptr<int>();
     int* kernel_data = torch_kernel.data_ptr<int>();
-    // ImageT<int> conv_input = {.batch_size = opt.batch_size, .in_channels = opt.in_channels, .width = opt.iw, .height = opt.ih, .data = torch_inp.data_ptr<int>()};
-    // KernelT<int> conv_weight = {.out_channels = opt.out_channels, .in_channels = opt.in_channels, .width = opt.ww, .height = opt.wh, .data = torch_kernel.data_ptr<int>()};
     ImageT<int> conv_output = func(inp_data, kernel_data);
     // conv_output.print();
     compare(torch_output, conv_output, test_name, "");
@@ -118,10 +116,6 @@ void test_default_options(int batch_sz, int in_channels, int out_channels) {
     for (int i = 0; i < n_tests; i++) {
         test_conv2d(iw[i], ih[i], ww[i], wh[i], batch_sz, in_channels, out_channels, conv_options, torch_options, "default_options", details[i]);
     }
-    // test specialized code
-    TestOptions default_options = {.iw = 5, .ih = 5, .ww = 3, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
-                                    .stride = default_stride, .padding_same = 0, .padding = default_padding, .dilation = default_dilation};
-    test_static_conv2d(default_options, &conv2d_default_im5x5_w3x3, "default_im5x5_w3x3");
 }
 
 void test_stride(int batch_sz, int in_channels, int out_channels) {
@@ -238,6 +232,99 @@ void test_batching_channels(int batch_sz, int in_ch, int out_ch) {
     std::cout << "Done" << std::endl;
 }
 
+void test_static_all() {
+
+    std::cout << "testing specialized code" << std::endl;
+    TestOptions options;
+    int stride[2];
+    int dilation[2];
+    int padding[2];
+    int padding_same;
+
+    // default
+    options = {.iw = 5, .ih = 5, .ww = 3, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
+                                    .stride = default_stride, .padding_same = 0, .padding = default_padding, .dilation = default_dilation};
+    test_static_conv2d(options, &conv2d_default_im5x5_w3x3, "default_im5x5_w3x3");
+
+    // stride
+    stride[0] = 2;
+    stride[1] = 1;
+    options = {.iw = 10, .ih = 8, .ww = 2, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
+                                    .stride = stride, .padding_same = 0, .padding = default_padding, .dilation = default_dilation};
+    test_static_conv2d(options, &conv2d_stride2x1_im8x10_w3x2, "stride2x1_im8x10_w3x2");
+
+    // dilation
+    dilation[0] = 3;
+    dilation[1] = 2;
+    options = {.iw = 15, .ih = 20, .ww = 2, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
+                                    .stride = default_stride, .padding_same = 0, .padding = default_padding, .dilation = dilation};
+    test_static_conv2d(options, &conv2d_dil3x2_im20x15_w3x2, "dil3x2_im20x15_w3x2");
+
+    // stride and dilation
+    dilation[0] = 3;
+    dilation[1] = 2;
+    stride[0] = 2;
+    stride[1] = 3;
+    options = {.iw = 15, .ih = 20, .ww = 2, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
+                                    .stride = stride, .padding_same = 0, .padding = default_padding, .dilation = dilation};
+    test_static_conv2d(options, &conv2d_stride2x3_dil3x2_im20x15_w3x2, "stride2x3_dil3x2_im20x15_w3x2");
+
+    // padding arr
+    padding[0] = 1;
+    padding[1] = 2;
+    options = {.iw = 5, .ih = 5, .ww = 2, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
+                                    .stride = default_stride, .padding_same = 0, .padding = padding, .dilation = default_dilation};
+    test_static_conv2d(options, &conv2d_pad1x2_im5x5_w3x2, "pad1x2_im5x5_w3x2");
+
+    // padding same
+    options = {.iw = 5, .ih = 5, .ww = 2, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
+                                    .stride = default_stride, .padding_same = 1, .padding = default_padding, .dilation = default_dilation};
+    test_static_conv2d(options, &conv2d_padsame_im5x5_w3x2, "padsame_im5x5_w3x2");
+
+    // stride, dilation, padding arr
+    dilation[0] = 3;
+    dilation[1] = 2;
+    stride[0] = 2;
+    stride[1] = 3;
+    padding[0] = 3;
+    padding[1] = 4;
+    options = {.iw = 15, .ih = 20, .ww = 2, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
+                                    .stride = stride, .padding_same = 0, .padding = padding, .dilation = dilation};
+    test_static_conv2d(options, &conv2d_dil3x2_stride2x3_pad3x4_im15x20_w3x2, "dil3x2_stride2x3_pad3x4_im15x20_w3x2");
+
+    // dilation, padding same
+    dilation[0] = 3;
+    dilation[1] = 2;
+    options = {.iw = 15, .ih = 20, .ww = 2, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
+                                    .stride = default_stride, .padding_same = 1, .padding = default_padding, .dilation = dilation};
+    test_static_conv2d(options, &conv2d_dil3x2_padsame_im15x20_w3x2, "dil3x2_padsame_im15x20_w3x2");
+
+    // batching, stride, dilation, padding
+    dilation[0] = 2;
+    dilation[1] = 2;
+    stride[0] = 2;
+    stride[1] = 4;
+    padding[0] = 5;
+    padding[1] = 4;
+    options = {.iw = 20, .ih = 20, .ww = 3, .wh = 3, .batch_size = 5, .in_channels = 1, .out_channels = 1, 
+                                    .stride = stride, .padding_same = 0, .padding = padding, .dilation = dilation};
+    test_static_conv2d(options, &conv2d_dil2x2_stride2x4_pad5x4_im20x20_w3x3_batch5, "dil2x2_stride2x4_pad5x4_im20x20_w3x3_batch5");
+
+    // batching, stride, dilation, padding, in channels, out channels
+    dilation[0] = 2;
+    dilation[1] = 2;
+    stride[0] = 2;
+    stride[1] = 4;
+    padding[0] = 5;
+    padding[1] = 4;
+    options = {.iw = 20, .ih = 20, .ww = 5, .wh = 5, .batch_size = 4, .in_channels = 3, .out_channels = 5, 
+                                    .stride = stride, .padding_same = 0, .padding = padding, .dilation = dilation};
+    test_static_conv2d(options, &conv2d_dil2x2_stride2x4_pad5x4_im20x20_w5x5_batch4_inch4_outch5, "dil2x2_stride2x4_pad5x4_im20x20_w5x5_batch4_inch4_outch5");
+
+
+
+}
+
 
 int main() {
     test_default_options(default_batch_sz, default_in_channels, default_out_channels);
@@ -255,5 +342,7 @@ int main() {
     test_batching_channels(default_in_channels, 3, 4); // both in and out channels
     test_batching_channels(5, default_in_channels, 2); // batching and out channels
     test_batching_channels(3, 4, 5); // test all
+
+    test_static_all();
 
 }
