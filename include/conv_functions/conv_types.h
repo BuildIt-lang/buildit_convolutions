@@ -39,7 +39,7 @@ struct TensorT: public dyn_var<builder::name<tensor_t_name>> {
     dyn_var<int> channels = as_member_of(this, "channels");
     dyn_var<int> width = as_member_of(this, "width");
     dyn_var<int> height = as_member_of(this, "height");
-    dyn_var<int*> data = as_member_of(this, "data"); // array of shape batch_size*width*height
+    dyn_var<int*> data = as_member_of(this, "data"); 
     dyn_var<void(void)> print = as_member_of(this, "print");
 };
 

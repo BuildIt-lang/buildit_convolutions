@@ -1,36 +1,45 @@
 #include <assert.h>
 
-conv_runtime::ImageT<int> conv2d_default_im5x5_w3x3 (conv_runtime::ImageT<int> arg0, conv_runtime::KernelT<int> arg1) {
-  assert(arg0.in_channels == arg1.in_channels);
-  assert(arg1.height <= arg0.height);
-  assert(arg1.width <= arg0.width);
-  conv_runtime::ImageT<int> var2;
-  var2 = arg0;
-  conv_runtime::ImageT<int> var3;
-  var3.height = (((var2.height - (1 * (arg1.height - 1))) - 1) / 1) + 1;
-  var3.width = (((var2.width - (1 * (arg1.width - 1))) - 1) / 1) + 1;
-  var3.in_channels = arg1.out_channels;
-  var3.batch_size = var2.batch_size;
-  var3.data = conv_runtime::conv_calloc(((var3.width * var3.height) * var3.batch_size) * var3.in_channels, 4);
+conv_runtime::ImageT<int> conv2d_default_im5x5_w3x3 (int* arg0, int* arg1) {
+  assert(1);
+  assert(1);
+  int var2 = 0;
+  int var3 = 0;
+  int var4;
   int var5;
-  int var6;
-  int var7;
+  var4 = 5 + (2 * var2);
+  var5 = 5 + (2 * var3);
+  conv_runtime::ImageT<int> var6;
+  var6.height = (((var4 - 2) - 1) / 1) + 1;
+  var6.width = (((var5 - 2) - 1) / 1) + 1;
+  var6.in_channels = 1;
+  var6.batch_size = 1;
+  var6.data = conv_runtime::conv_calloc(((var6.width * var6.height) * var6.batch_size) * var6.in_channels, 4);
+  int var8;
+  int var9;
   // looping over batches
-  for (int var8 = 0; var8 < var3.batch_size; var8 = var8 + 1) {
+  for (int var10 = 0; var10 < 1; var10 = var10 + 1) {
     // looping over out channels
-    for (int var9 = 0; var9 < arg1.out_channels; var9 = var9 + 1) {
+    for (int var11 = 0; var11 < 1; var11 = var11 + 1) {
       // looping over in channels
-      for (int var10 = 0; var10 < var2.in_channels; var10 = var10 + 1) {
+      for (int var12 = 0; var12 < 1; var12 = var12 + 1) {
         // looping over the output
-        for (int var11 = 0; var11 < var3.height; var11 = var11 + 1) {
-          for (int var12 = 0; var12 < var3.width; var12 = var12 + 1) {
-            var5 = (((((var8 * var3.in_channels) * var3.height) * var3.width) + ((var9 * var3.width) * var3.height)) + (var11 * var3.width)) + var12;
+        for (int var13 = 0; var13 < var6.height; var13 = var13 + 1) {
+          for (int var14 = 0; var14 < var6.width; var14 = var14 + 1) {
+            var8 = (((((var10 * 1) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
             // looping over the kernel
-            for (int var13 = 0; var13 < arg1.height; var13 = var13 + 1) {
-              for (int var14 = 0; var14 < arg1.width; var14 = var14 + 1) {
-                var6 = (((((var8 * var2.in_channels) * var2.width) * var2.height) + ((var10 * var2.width) * var2.height)) + (((var11 * 1) + (var13 * 1)) * var2.width)) + ((var12 * 1) + (var14 * 1));
-                var7 = (((((var9 * arg1.in_channels) * arg1.width) * arg1.height) + ((var10 * arg1.width) * arg1.height)) + (var13 * arg1.width)) + var14;
-                var3.data[var5] = var3.data[var5] + (var2.data[var6] * arg1.data[var7]);
+            for (int var15 = 0; var15 < 3; var15 = var15 + 1) {
+              for (int var16 = 0; var16 < 3; var16 = var16 + 1) {
+                int var17 = (var13 * 1) + (var15 * 1);
+                int var18 = (var14 * 1) + (var16 * 1);
+                int var19;
+                if ((((var17 < var2) || (var18 < var3)) || (var17 >= (5 + var2))) || (var18 >= (5 + var3))) {
+                  var19 = 0;
+                } else {
+                  var19 = arg0[(((((var10 * 1) * 5) * 5) + ((var12 * 5) * 5)) + ((var17 - var2) * 5)) + (var18 - var3)];
+                }
+                var9 = (((((var11 * 1) * 3) * 3) + ((var12 * 3) * 3)) + (var15 * 3)) + var16;
+                var6.data[var8] = var6.data[var8] + (var19 * arg1[var9]);
               }
             }
           }
@@ -38,7 +47,7 @@ conv_runtime::ImageT<int> conv2d_default_im5x5_w3x3 (conv_runtime::ImageT<int> a
       }
     }
   }
-  return var3;
+  return var6;
 }
 
 

@@ -55,6 +55,8 @@ void test_conv2d(int iw, int ih, int ww, int wh, int batch_size, int in_channels
     // generate image and kernel
     Tensor torch_input = torch::randint(lo, hi, {batch_size, in_channels, ih, iw}).to(torch::kFloat); // using float here because dilation doesn't work with int
     Tensor torch_weight = torch::randint(lo, hi, {out_channels, in_channels/conv_options.groups, wh, ww}).to(torch::kFloat);
+    // std::cout << torch_input << std::endl;
+    // std::cout << torch_weight << std::endl;
     // // get expected output
     Tensor torch_output = F::conv2d(torch_input, torch_weight, torch_options);
     // std::cout << torch_output << std::endl;
@@ -69,7 +71,7 @@ void test_conv2d(int iw, int ih, int ww, int wh, int batch_size, int in_channels
 }
 
 // testing specialized conv2d
-void test_static_conv2d(TestOptions opt, ImageT<int> (*func)(ImageT<int>, KernelT<int>), string test_name) {
+void test_static_conv2d(TestOptions opt, ImageT<int> (*func)(int*, int*), string test_name) {
     int64_t lo = 0;
     int64_t hi = 100;
     Tensor torch_input = torch::randint(lo, hi, {opt.batch_size, opt.in_channels, opt.ih, opt.iw}).to(torch::kFloat); // using float here because dilation doesn't work with int in torch
@@ -91,9 +93,11 @@ void test_static_conv2d(TestOptions opt, ImageT<int> (*func)(ImageT<int>, Kernel
     // get actual output
     Tensor torch_inp = torch_input.to(torch::kInt32);
     Tensor torch_kernel = torch_weight.to(torch::kInt32);
-    ImageT<int> conv_input = {.batch_size = opt.batch_size, .in_channels = opt.in_channels, .width = opt.iw, .height = opt.ih, .data = torch_inp.data_ptr<int>()};
-    KernelT<int> conv_weight = {.out_channels = opt.out_channels, .in_channels = opt.in_channels, .width = opt.ww, .height = opt.wh, .data = torch_kernel.data_ptr<int>()};
-    ImageT<int> conv_output = func(conv_input, conv_weight);
+    int* inp_data = torch_inp.data_ptr<int>();
+    int* kernel_data = torch_kernel.data_ptr<int>();
+    // ImageT<int> conv_input = {.batch_size = opt.batch_size, .in_channels = opt.in_channels, .width = opt.iw, .height = opt.ih, .data = torch_inp.data_ptr<int>()};
+    // KernelT<int> conv_weight = {.out_channels = opt.out_channels, .in_channels = opt.in_channels, .width = opt.ww, .height = opt.wh, .data = torch_kernel.data_ptr<int>()};
+    ImageT<int> conv_output = func(inp_data, kernel_data);
     // conv_output.print();
     compare(torch_output, conv_output, test_name, "");
 }

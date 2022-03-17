@@ -22,15 +22,15 @@ int main() {
     int dilation[][2] = {{1, 1}};
     int padding[][2] ={{0, 0}};
     int padding_same[] = {0};
-    // int iw[] = {5};
-    // int ih[] = {5};
-    // int ww[] = {3};
-    // int wh[] = {3};
-    // int batch_size[] = {1};
-    // int in_channels[] = {1};
-    // int out_channels[] = {1};
+    int iw[] = {5};
+    int ih[] = {5};
+    int ww[] = {3};
+    int wh[] = {3};
+    int batch_size[] = {1};
+    int in_channels[] = {1};
+    int out_channels[] = {1};
     for (int i = 0; i < num_tests; i ++) {
-        auto ast = builder::builder_context().extract_function_ast(static_conv2d, func_name[i], stride[i], dilation[i], padding[i], padding_same[i]);
+        auto ast = builder::builder_context().extract_function_ast(static_conv2d, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i]);
         block::eliminate_redundant_vars(ast);
         pipeline::commented_code_generator::generate_code(ast, code_file, 0);
         code_file << "\n" << std::endl;

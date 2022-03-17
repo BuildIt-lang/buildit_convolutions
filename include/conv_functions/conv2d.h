@@ -9,8 +9,8 @@ using conv::PaddingT;
 using conv::ImageT;
 using conv::KernelT;
 
-ImageT dyn_pad_input(ImageT input, KernelT weight, ConvOptions opt);
 ImageT dyn_conv2d(ImageT input, KernelT weight, ConvOptions options);
 
-ImageT static_pad_input(ImageT input, KernelT weight, int* stride, int* dilation, int* padding, int padding_same);
-ImageT static_conv2d(ImageT inp, KernelT weight, static_var<int*> stride, static_var<int*> dilation, static_var<int*> padding, static_var<int> padding_same);
+ImageT static_conv2d(dyn_var<int*> inp_data, dyn_var<int*> weight_data, static_var<int> iw, static_var<int> ih, static_var<int> ww, static_var<int> wh, 
+                    static_var<int> batch_size, static_var<int> in_channels, static_var<int> out_channels, static_var<int*> stride, static_var<int*> dilation, 
+                    static_var<int*> padding, static_var<int> padding_same);
