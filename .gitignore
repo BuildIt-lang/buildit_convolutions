@@ -3,3 +3,4 @@ generated_code/sample2.cpp
 build/*
 .vscode
 test/build/*
+timing/build/*

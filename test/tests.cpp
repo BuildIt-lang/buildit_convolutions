@@ -1,5 +1,4 @@
 #include <iostream>
-#include <chrono>
 #include <torch/torch.h>
 #include "buildit_conv2d.h"
 #include "specialized_test_code.h"
