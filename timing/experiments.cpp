@@ -48,37 +48,6 @@ ExpandingArray<2> convert_to_expanding_array(int* arr) {
     return expanding_arr;
 }
 
-void time_general_conv2d(int iw, int ih, int ww, int wh, int batch_size, int in_channels, int out_channels, conv_runtime::ConvOptions conv_options, F::ConvFuncOptions<2> torch_options, string test_name, string test_details) {
-    int64_t lo = 0;
-    int64_t hi = 100;
-    int n_iters = 100;
-    // generate image and kernel
-    Tensor torch_input = torch::randint(lo, hi, {batch_size, in_channels, ih, iw}).to(torch::kFloat); // using float here because dilation doesn't work with int
-    Tensor torch_weight = torch::randint(lo, hi, {out_channels, in_channels/conv_options.groups, wh, ww}).to(torch::kFloat);
-    
-    conv_runtime::start_timer();
-    for (int iter = 0; iter < n_iters; iter++) {
-        Tensor torch_output = F::conv2d(torch_input, torch_weight, torch_options);
-    }
-    float torch_time = conv_runtime::stop_timer() / n_iters;
-
-    Tensor torch_inp = torch_input.to(torch::kInt32);
-    Tensor torch_kernel = torch_weight.to(torch::kInt32);
-    conv_runtime::ImageT<int> conv_input = {.batch_size = batch_size, .in_channels = in_channels, .width = iw, .height = ih, .data = torch_inp.data_ptr<int>()};
-    conv_runtime::KernelT<int> conv_weight = {.out_channels = out_channels, .in_channels = in_channels, .width = ww, .height = wh, .data = torch_kernel.data_ptr<int>()};
-
-    conv_runtime::start_timer();
-    for (int iter = 0; iter < n_iters; iter++) {
-        conv_runtime::ImageT<int> conv_output = buildit_conv2d(conv_input, conv_weight, conv_options);
-    }
-    float conv_time = conv_runtime::stop_timer() / n_iters;
-    
-    std::cout << "torch_time: " << torch_time << "ms, conv_time: " << conv_time << "ms" << std::endl;
-    Tensor torch_output_final = F::conv2d(torch_input, torch_weight, torch_options);
-    conv_runtime::ImageT<int> conv_output_final = buildit_conv2d(conv_input, conv_weight, conv_options);
-    compare(torch_output_final, conv_output_final, "test", "test");
-}
-
 void time_specialized_conv2d(int iw, int ih, int ww, int wh, int b_sz, int in_ch, int out_ch, int* stride, int* dilation, int* padding, int padding_same, conv_runtime::ImageT<int> (*func)(int*, int*), string test_name) {
     int64_t lo = 0;
     int64_t hi = 100;
@@ -150,13 +119,7 @@ void run() {
     GeneratedFunction functions[] = {&f1, &f2, &f3};
 
     for (int i = 0; i < n_runs; i++) {
-        F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
-        ExpandingArray<2> torch_stride = convert_to_expanding_array(stride[i]);
-        ExpandingArray<2> torch_dilation = convert_to_expanding_array(dilation[i]);
-        ExpandingArray<2> torch_padding = convert_to_expanding_array(padding[i]);
-        torch_options = torch_options.stride(torch_stride).padding(torch_padding).dilation(torch_dilation);
-        // time_general_conv2d(iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], out_channels[i], conv_options, torch_options, "test", "test");
-        time_specialized_conv2d(iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], &f1, "test");
+        time_specialized_conv2d(iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], functions[i], "test");
     }
 
 }
