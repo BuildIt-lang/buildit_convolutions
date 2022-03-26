@@ -180,7 +180,7 @@ void test_padding_same(int batch_sz, int in_channels, int out_channels) {
     torch_options = torch_options.padding(torch::kSame);
     int iw = 5;
     int ih = 5;
-    int ww = 2;
+    int ww = 3;
     int wh = 3;
     test_conv2d(iw, ih, ww, wh, batch_sz, in_channels, out_channels, conv_options, torch_options, "padding", "same");
 }
@@ -213,7 +213,7 @@ void test_dilation_padding_same(int batch_sz, int in_channels, int out_channels)
     torch_options = torch_options.dilation(torch_dilation).padding(torch::kSame);
     int iw = 15;
     int ih = 20;
-    int ww = 2;
+    int ww = 3;
     int wh = 3;
     test_conv2d(iw, ih, ww, wh, batch_sz, in_channels, out_channels, conv_options, torch_options, "dilation, padding", "same");
 }
@@ -276,9 +276,9 @@ void test_static_all() {
     test_static_conv2d(options, &conv2d_pad1x2_im5x5_w3x2, "pad1x2_im5x5_w3x2");
 
     // padding same
-    options = {.iw = 5, .ih = 5, .ww = 2, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
+    options = {.iw = 5, .ih = 5, .ww = 3, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
                                     .stride = default_stride, .padding_same = 1, .padding = default_padding, .dilation = default_dilation};
-    test_static_conv2d(options, &conv2d_padsame_im5x5_w3x2, "padsame_im5x5_w3x2");
+    test_static_conv2d(options, &conv2d_padsame_im5x5_w3x3, "padsame_im5x5_w3x3");
 
     // stride, dilation, padding arr
     dilation[0] = 3;
@@ -294,9 +294,9 @@ void test_static_all() {
     // dilation, padding same
     dilation[0] = 3;
     dilation[1] = 2;
-    options = {.iw = 15, .ih = 20, .ww = 2, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
+    options = {.iw = 15, .ih = 20, .ww = 3, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
                                     .stride = default_stride, .padding_same = 1, .padding = default_padding, .dilation = dilation};
-    test_static_conv2d(options, &conv2d_dil3x2_padsame_im15x20_w3x2, "dil3x2_padsame_im15x20_w3x2");
+    test_static_conv2d(options, &conv2d_dil3x2_padsame_im15x20_w3x3, "dil3x2_padsame_im15x20_w3x3");
 
     // batching, stride, dilation, padding
     dilation[0] = 2;

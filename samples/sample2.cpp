@@ -23,9 +23,9 @@ int main() {
         "conv2d_dil3x2_im20x15_w3x2",
         "conv2d_stride2x3_dil3x2_im20x15_w3x2",
         "conv2d_pad1x2_im5x5_w3x2",
-        "conv2d_padsame_im5x5_w3x2",
+        "conv2d_padsame_im5x5_w3x3",
         "conv2d_dil3x2_stride2x3_pad3x4_im15x20_w3x2",
-        "conv2d_dil3x2_padsame_im15x20_w3x2",
+        "conv2d_dil3x2_padsame_im15x20_w3x3",
         "conv2d_dil2x2_stride2x4_pad5x4_im20x20_w3x3_batch5",
         "conv2d_dil2x2_stride2x4_pad5x4_im20x20_w5x5_batch4_inch4_outch5"
         };
@@ -35,7 +35,7 @@ int main() {
     int padding_same[] = {0, 0, 0, 0, 0, 1, 0, 1, 0, 0};
     int iw[] = {5, 10, 15, 15, 5, 5, 15, 15, 20, 20};
     int ih[] = {5, 8, 20, 20, 5, 5, 20, 20, 20, 20};
-    int ww[] = {3, 2, 2, 2, 2, 2, 2, 2, 3, 5};
+    int ww[] = {3, 2, 2, 2, 2, 3, 2, 3, 3, 5};
     int wh[] = {3, 3, 3, 3, 3, 3, 3, 3, 3, 5};
     int batch_size[] = {1, 1, 1, 1, 1, 1, 1, 1, 5, 4};
     int in_channels[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 3};
