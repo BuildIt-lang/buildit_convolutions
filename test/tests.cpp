@@ -339,21 +339,21 @@ void test_static_all() {
 
 
 int main() {
-    test_default_options(default_batch_sz, default_in_channels, default_out_channels);
-    test_stride(default_batch_sz, default_in_channels, default_out_channels);
-    test_dilation(default_batch_sz, default_in_channels, default_out_channels);
-    test_stride_dilation(default_batch_sz, default_in_channels, default_out_channels);
-    test_padding_arr(default_batch_sz, default_in_channels, default_out_channels);
-    test_padding_same(default_batch_sz, default_in_channels, default_out_channels);
-    test_stride_dilation_padding(default_batch_sz, default_in_channels, default_out_channels);
-    test_dilation_padding_same(default_batch_sz, default_in_channels, default_out_channels);
-    test_batching_channels(4, default_in_channels, default_out_channels); // batching
-    test_batching_channels(default_batch_sz, 4, default_out_channels); // in channels
-    test_batching_channels(2, 4, default_out_channels); // both batches and in channels
-    test_batching_channels(default_batch_sz, default_in_channels, 3); // out_channels
-    test_batching_channels(default_in_channels, 3, 4); // both in and out channels
-    test_batching_channels(5, default_in_channels, 2); // batching and out channels
-    test_batching_channels(3, 4, 5); // test all
+    // test_default_options(default_batch_sz, default_in_channels, default_out_channels);
+    // test_stride(default_batch_sz, default_in_channels, default_out_channels);
+    // test_dilation(default_batch_sz, default_in_channels, default_out_channels);
+    // test_stride_dilation(default_batch_sz, default_in_channels, default_out_channels);
+    // test_padding_arr(default_batch_sz, default_in_channels, default_out_channels);
+    // test_padding_same(default_batch_sz, default_in_channels, default_out_channels);
+    // test_stride_dilation_padding(default_batch_sz, default_in_channels, default_out_channels);
+    // test_dilation_padding_same(default_batch_sz, default_in_channels, default_out_channels);
+    // test_batching_channels(4, default_in_channels, default_out_channels); // batching
+    // test_batching_channels(default_batch_sz, 4, default_out_channels); // in channels
+    // test_batching_channels(2, 4, default_out_channels); // both batches and in channels
+    // test_batching_channels(default_batch_sz, default_in_channels, 3); // out_channels
+    // test_batching_channels(default_in_channels, 3, 4); // both in and out channels
+    // test_batching_channels(5, default_in_channels, 2); // batching and out channels
+    // test_batching_channels(3, 4, 5); // test all
 
     test_static_all();
 

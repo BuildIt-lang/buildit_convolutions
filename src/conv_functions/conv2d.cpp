@@ -90,10 +90,10 @@ ImageT static_conv2d(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig
     conv::runtime::conv_assert(wh <= orig_ih);
     conv::runtime::conv_assert(ww <= orig_iw);
 
-    dyn_var<int> pad_h = padding[0];
-    dyn_var<int> pad_w = padding[1];
-    dyn_var<int> ih;
-    dyn_var<int> iw;
+    static_var<int> pad_h = padding[0];
+    static_var<int> pad_w = padding[1];
+    static_var<int> ih;
+    static_var<int> iw;
     if (padding_same == 1) {
         // torch does not support padding "same" with stride other than 1
         conv::runtime::conv_assert(stride[0] == 1 && stride[1] == 1);
@@ -107,12 +107,15 @@ ImageT static_conv2d(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig
         iw = orig_iw + 2 * pad_w;
     }
 
+    static_var<int> oh = (ih - dilation[0] * (wh - 1) - 1) / stride[0] + 1;
+    static_var<int> ow = (iw - dilation[1] * (ww - 1) - 1) / stride[1] + 1;
+
     ImageT output;
-    output.height = (ih - dilation[0] * (wh - 1) - 1) / stride[0] + 1;
-    output.width = (iw - dilation[1] * (ww - 1) - 1) / stride[1] + 1;
+    output.height = oh;
+    output.width = ow;
     output.in_channels = out_channels;
     output.batch_size = batch_size;
-    dyn_var<int> size = output.width * output.height * output.batch_size * output.in_channels;
+    static_var<int> size = ow * oh * batch_size * out_channels;
     output.data = conv::runtime::conv_calloc(size, (int)sizeof(int));
     dyn_var<int> out_idx;
     dyn_var<int> weight_idx;
@@ -127,20 +130,42 @@ ImageT static_conv2d(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig
                     for (dyn_var<int> w = 0; w < output.width; w = w + 1) {
                         out_idx =  bid * output.in_channels * output.height * output.width + out_ch * output.width * output.height + h * output.width + w;
                         builder::annotate("Comment: looping over the kernel");
-                        for (dyn_var<int> i = 0; i < wh; i = i + 1){
-                            for (dyn_var<int> j = 0; j < ww; j = j + 1) {
-                                dyn_var<int> im_i = h * stride[0] + i * dilation[0];
-                                dyn_var<int> im_j = w * stride[1] + j * dilation[1];
-                                dyn_var<int> img_val;
-                                if (im_i < pad_h || im_j < pad_w || im_i >= orig_ih + pad_h || im_j >= orig_iw + pad_w) {
-                                    img_val = 0;
-                                } else {
-                                    img_val = inp_data[bid * in_channels * orig_iw * orig_ih + in_ch * orig_iw * orig_ih + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
+                        for (dyn_var<int> i = 0; i < wh; i = i + 1) {
+                            dyn_var<int> im_i = h * stride[0] + i * dilation[0];
+                            if (im_i < pad_h) continue;
+                            else if (im_i < orig_ih + pad_h) {
+                                for (dyn_var<int> j = 0; j < ww; j = j + 1) {
+                                    dyn_var<int> im_j = w * stride[1] + j * dilation[1];
+                                    if (im_j < pad_w) continue;
+                                    else if (im_j < orig_iw + pad_w) {
+                                        dyn_var<int> img_val = inp_data[bid * in_channels * orig_iw * orig_ih + in_ch * orig_iw * orig_ih + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
+                                        weight_idx = out_ch * in_channels * ww * wh + in_ch * ww * wh + i * ww + j;
+                                        output.data[out_idx] = output.data[out_idx] + img_val * weight_data[weight_idx];
+                                    }
+                                    else break;
                                 }
-                                weight_idx = out_ch * in_channels * ww * wh + in_ch * ww * wh + i * ww + j;
-                                output.data[out_idx] = output.data[out_idx] + img_val * weight_data[weight_idx];
                             }
+                            else break;
                         }
+                        // dyn_var<int> st_im_i = h * stride[0];
+                        // for (dyn_var<int> im_i = st_im_i; im_i < pad_h; im_i = im_i + dilation[0]) {
+                        //     st_im_i = im_i;
+                        // }
+                        // dyn_var<int> en_i = h * stride[0] + wh * dilation[0];
+                        // for (dyn_var<int> im_i = st_im_i; im_i < en_i; im_i = im_i + dilation[0]) {
+                        //     dyn_var<int> st_im_j = w * stride[1];
+                        //     for (dyn_var<int> im_j = st_im_j; im_j < pad_w; im_j = im_j + dilation[1]) {
+                        //         st_im_j = im_j;
+                        //     }
+                        //     dyn_var<int> en_j = w * stride[1] + ww * dilation[1];
+                        //     for (dyn_var<int> im_j = st_im_j; im_j < en_j; im_j = im_j + dilation[1]) {
+                        //         dyn_var<int> img_val = inp_data[bid * in_channels * orig_iw * orig_ih + in_ch * orig_iw * orig_ih + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
+                        //         dyn_var<int> i = (im_i - h * stride[0]) / dilation[0];
+                        //         dyn_var<int> j = (im_j - w * stride[1]) / dilation[1];
+                        //         weight_idx = out_ch * in_channels * ww * wh + in_ch * ww * wh + i * ww + j;
+                        //         output.data[out_idx] = output.data[out_idx] + img_val * weight_data[weight_idx];
+                        //     }
+                        // }
                     }
                 }
             }
