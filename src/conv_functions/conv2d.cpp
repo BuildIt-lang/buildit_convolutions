@@ -125,7 +125,7 @@ ImageT static_conv2d(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig
                 builder::annotate("Comment: looping over the output");
                 for (dyn_var<int> h = 0; h < output.height; h = h + 1) {
                     for (dyn_var<int> w = 0; w < output.width; w = w + 1) {
-                        out_idx =  bid * in_channels * output.height * output.width + out_ch * output.width * output.height + h * output.width + w;
+                        out_idx =  bid * output.in_channels * output.height * output.width + out_ch * output.width * output.height + h * output.width + w;
                         builder::annotate("Comment: looping over the kernel");
                         for (dyn_var<int> i = 0; i < wh; i = i + 1){
                             for (dyn_var<int> j = 0; j < ww; j = j + 1) {

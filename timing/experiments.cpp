@@ -118,7 +118,7 @@ void run() {
     int dilation[][2] = {{1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}};
     int padding_same[] = {0, 0, 0, 0, 0, 0, 0, 0};
     std::string func_names[] = {"f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8"};
-    GeneratedFunction functions[] = {&f1, &f2, &f3, &f4};
+    GeneratedFunction functions[] = {&f1, &f2, &f3, &f4, &f5, &f6, &f7, &f8};
 
     for (int i = 0; i < n_runs; i++) {
         time_specialized_conv2d(iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], functions[i], func_names[i]);

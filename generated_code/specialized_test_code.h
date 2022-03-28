@@ -26,7 +26,7 @@ conv_runtime::ImageT<int> conv2d_default_im5x5_w3x3 (int* arg0, int* arg1) {
         // looping over the output
         for (int var13 = 0; var13 < var6.height; var13 = var13 + 1) {
           for (int var14 = 0; var14 < var6.width; var14 = var14 + 1) {
-            var8 = (((((var10 * 1) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
+            var8 = (((((var10 * var6.in_channels) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
             // looping over the kernel
             for (int var15 = 0; var15 < 3; var15 = var15 + 1) {
               for (int var16 = 0; var16 < 3; var16 = var16 + 1) {
@@ -78,7 +78,7 @@ conv_runtime::ImageT<int> conv2d_stride2x1_im8x10_w3x2 (int* arg0, int* arg1) {
         // looping over the output
         for (int var13 = 0; var13 < var6.height; var13 = var13 + 1) {
           for (int var14 = 0; var14 < var6.width; var14 = var14 + 1) {
-            var8 = (((((var10 * 1) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
+            var8 = (((((var10 * var6.in_channels) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
             // looping over the kernel
             for (int var15 = 0; var15 < 3; var15 = var15 + 1) {
               for (int var16 = 0; var16 < 2; var16 = var16 + 1) {
@@ -130,7 +130,7 @@ conv_runtime::ImageT<int> conv2d_dil3x2_im20x15_w3x2 (int* arg0, int* arg1) {
         // looping over the output
         for (int var13 = 0; var13 < var6.height; var13 = var13 + 1) {
           for (int var14 = 0; var14 < var6.width; var14 = var14 + 1) {
-            var8 = (((((var10 * 1) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
+            var8 = (((((var10 * var6.in_channels) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
             // looping over the kernel
             for (int var15 = 0; var15 < 3; var15 = var15 + 1) {
               for (int var16 = 0; var16 < 2; var16 = var16 + 1) {
@@ -182,7 +182,7 @@ conv_runtime::ImageT<int> conv2d_stride2x3_dil3x2_im20x15_w3x2 (int* arg0, int* 
         // looping over the output
         for (int var13 = 0; var13 < var6.height; var13 = var13 + 1) {
           for (int var14 = 0; var14 < var6.width; var14 = var14 + 1) {
-            var8 = (((((var10 * 1) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
+            var8 = (((((var10 * var6.in_channels) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
             // looping over the kernel
             for (int var15 = 0; var15 < 3; var15 = var15 + 1) {
               for (int var16 = 0; var16 < 2; var16 = var16 + 1) {
@@ -234,7 +234,7 @@ conv_runtime::ImageT<int> conv2d_pad1x2_im5x5_w3x2 (int* arg0, int* arg1) {
         // looping over the output
         for (int var13 = 0; var13 < var6.height; var13 = var13 + 1) {
           for (int var14 = 0; var14 < var6.width; var14 = var14 + 1) {
-            var8 = (((((var10 * 1) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
+            var8 = (((((var10 * var6.in_channels) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
             // looping over the kernel
             for (int var15 = 0; var15 < 3; var15 = var15 + 1) {
               for (int var16 = 0; var16 < 2; var16 = var16 + 1) {
@@ -289,7 +289,7 @@ conv_runtime::ImageT<int> conv2d_padsame_im5x5_w3x3 (int* arg0, int* arg1) {
         // looping over the output
         for (int var13 = 0; var13 < var6.height; var13 = var13 + 1) {
           for (int var14 = 0; var14 < var6.width; var14 = var14 + 1) {
-            var8 = (((((var10 * 1) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
+            var8 = (((((var10 * var6.in_channels) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
             // looping over the kernel
             for (int var15 = 0; var15 < 3; var15 = var15 + 1) {
               for (int var16 = 0; var16 < 3; var16 = var16 + 1) {
@@ -341,7 +341,7 @@ conv_runtime::ImageT<int> conv2d_dil3x2_stride2x3_pad3x4_im15x20_w3x2 (int* arg0
         // looping over the output
         for (int var13 = 0; var13 < var6.height; var13 = var13 + 1) {
           for (int var14 = 0; var14 < var6.width; var14 = var14 + 1) {
-            var8 = (((((var10 * 1) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
+            var8 = (((((var10 * var6.in_channels) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
             // looping over the kernel
             for (int var15 = 0; var15 < 3; var15 = var15 + 1) {
               for (int var16 = 0; var16 < 2; var16 = var16 + 1) {
@@ -396,7 +396,7 @@ conv_runtime::ImageT<int> conv2d_dil3x2_padsame_im15x20_w3x3 (int* arg0, int* ar
         // looping over the output
         for (int var13 = 0; var13 < var6.height; var13 = var13 + 1) {
           for (int var14 = 0; var14 < var6.width; var14 = var14 + 1) {
-            var8 = (((((var10 * 1) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
+            var8 = (((((var10 * var6.in_channels) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
             // looping over the kernel
             for (int var15 = 0; var15 < 3; var15 = var15 + 1) {
               for (int var16 = 0; var16 < 3; var16 = var16 + 1) {
@@ -448,7 +448,7 @@ conv_runtime::ImageT<int> conv2d_dil2x2_stride2x4_pad5x4_im20x20_w3x3_batch5 (in
         // looping over the output
         for (int var13 = 0; var13 < var6.height; var13 = var13 + 1) {
           for (int var14 = 0; var14 < var6.width; var14 = var14 + 1) {
-            var8 = (((((var10 * 1) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
+            var8 = (((((var10 * var6.in_channels) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
             // looping over the kernel
             for (int var15 = 0; var15 < 3; var15 = var15 + 1) {
               for (int var16 = 0; var16 < 3; var16 = var16 + 1) {
@@ -500,7 +500,7 @@ conv_runtime::ImageT<int> conv2d_dil2x2_stride2x4_pad5x4_im20x20_w5x5_batch4_inc
         // looping over the output
         for (int var13 = 0; var13 < var6.height; var13 = var13 + 1) {
           for (int var14 = 0; var14 < var6.width; var14 = var14 + 1) {
-            var8 = (((((var10 * 3) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
+            var8 = (((((var10 * var6.in_channels) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
             // looping over the kernel
             for (int var15 = 0; var15 < 5; var15 = var15 + 1) {
               for (int var16 = 0; var16 < 5; var16 = var16 + 1) {
@@ -552,7 +552,7 @@ conv_runtime::ImageT<int> conv2d_im100x100_w10x10_batch10_inch10_outch10 (int* a
         // looping over the output
         for (int var13 = 0; var13 < var6.height; var13 = var13 + 1) {
           for (int var14 = 0; var14 < var6.width; var14 = var14 + 1) {
-            var8 = (((((var10 * 10) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
+            var8 = (((((var10 * var6.in_channels) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
             // looping over the kernel
             for (int var15 = 0; var15 < 10; var15 = var15 + 1) {
               for (int var16 = 0; var16 < 10; var16 = var16 + 1) {
@@ -604,7 +604,7 @@ conv_runtime::ImageT<int> conv2d_stride4x4_im100x100_w10x10_batch10_inch5_outch1
         // looping over the output
         for (int var13 = 0; var13 < var6.height; var13 = var13 + 1) {
           for (int var14 = 0; var14 < var6.width; var14 = var14 + 1) {
-            var8 = (((((var10 * 5) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
+            var8 = (((((var10 * var6.in_channels) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
             // looping over the kernel
             for (int var15 = 0; var15 < 10; var15 = var15 + 1) {
               for (int var16 = 0; var16 < 10; var16 = var16 + 1) {
@@ -656,7 +656,7 @@ conv_runtime::ImageT<int> conv2d_im10x10_w5x5_batch10_inch5_outch1 (int* arg0, i
         // looping over the output
         for (int var13 = 0; var13 < var6.height; var13 = var13 + 1) {
           for (int var14 = 0; var14 < var6.width; var14 = var14 + 1) {
-            var8 = (((((var10 * 5) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
+            var8 = (((((var10 * var6.in_channels) * var6.height) * var6.width) + ((var11 * var6.width) * var6.height)) + (var13 * var6.width)) + var14;
             // looping over the kernel
             for (int var15 = 0; var15 < 5; var15 = var15 + 1) {
               for (int var16 = 0; var16 < 5; var16 = var16 + 1) {
