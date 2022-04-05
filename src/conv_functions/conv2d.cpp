@@ -147,25 +147,7 @@ ImageT static_conv2d(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig
                             }
                             else break;
                         }
-                        // dyn_var<int> st_im_i = h * stride[0];
-                        // for (dyn_var<int> im_i = st_im_i; im_i < pad_h; im_i = im_i + dilation[0]) {
-                        //     st_im_i = im_i;
-                        // }
-                        // dyn_var<int> en_i = h * stride[0] + wh * dilation[0];
-                        // for (dyn_var<int> im_i = st_im_i; im_i < en_i; im_i = im_i + dilation[0]) {
-                        //     dyn_var<int> st_im_j = w * stride[1];
-                        //     for (dyn_var<int> im_j = st_im_j; im_j < pad_w; im_j = im_j + dilation[1]) {
-                        //         st_im_j = im_j;
-                        //     }
-                        //     dyn_var<int> en_j = w * stride[1] + ww * dilation[1];
-                        //     for (dyn_var<int> im_j = st_im_j; im_j < en_j; im_j = im_j + dilation[1]) {
-                        //         dyn_var<int> img_val = inp_data[bid * in_channels * orig_iw * orig_ih + in_ch * orig_iw * orig_ih + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
-                        //         dyn_var<int> i = (im_i - h * stride[0]) / dilation[0];
-                        //         dyn_var<int> j = (im_j - w * stride[1]) / dilation[1];
-                        //         weight_idx = out_ch * in_channels * ww * wh + in_ch * ww * wh + i * ww + j;
-                        //         output.data[out_idx] = output.data[out_idx] + img_val * weight_data[weight_idx];
-                        //     }
-                        // }
+                        
                     }
                 }
             }
@@ -174,4 +156,101 @@ ImageT static_conv2d(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig
     return output;
 }
 
+dyn_var<int> min(dyn_var<int> a, dyn_var<int> b) {
+    if (a < b) return a;
+    return b;
+}
+
+/*
+ImageT static_conv2d(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
+                    int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
+                    int* padding, int padding_same) {
+
+    conv::runtime::conv_assert(wh <= orig_ih);
+    conv::runtime::conv_assert(ww <= orig_iw);
+
+    static_var<int> pad_h = padding[0];
+    static_var<int> pad_w = padding[1];
+    static_var<int> ih;
+    static_var<int> iw;
+    if (padding_same == 1) {
+        // torch does not support padding "same" with stride other than 1
+        conv::runtime::conv_assert(stride[0] == 1 && stride[1] == 1);
+        // calculate padding such that the output is the same shape as the input
+        ih = orig_ih * stride[0] - stride[0] + dilation[0] * (wh - 1) + 1;
+        iw = orig_iw * stride[1] - stride[1] + dilation[1] * (ww - 1) + 1;
+        pad_h = (ih - orig_ih) / 2;
+        pad_w = (iw - orig_iw) / 2;
+    } else {
+        ih = orig_ih + 2 * pad_h;
+        iw = orig_iw + 2 * pad_w;
+    }
+
+    static_var<int> dil_wh = dilation[0] * (wh - 1) + wh;
+    static_var<int> dil_ww = dilation[1] * (ww - 1) + ww;
+
+    static_var<int> oh = (ih - dilation[0] * (wh - 1) - 1) / stride[0] + 1;
+    static_var<int> ow = (iw - dilation[1] * (ww - 1) - 1) / stride[1] + 1;
+
+    ImageT output;
+    output.height = oh;
+    output.width = ow;
+    output.in_channels = out_channels;
+    output.batch_size = batch_size;
+    static_var<int> size = ow * oh * batch_size * out_channels;
+    output.data = conv::runtime::conv_calloc(size, (int)sizeof(int));
+    dyn_var<int> out_idx;
+    dyn_var<int> weight_idx;
+    builder::annotate("Comment: looping over batches");
+    for (dyn_var<int> bid = 0; bid < batch_size; bid = bid + 1) {
+        builder::annotate("Comment: looping over out channels");
+        for (dyn_var<int> out_ch = 0; out_ch < out_channels; out_ch = out_ch + 1) {
+            builder::annotate("Comment: looping over in channels");
+            for (dyn_var<int> in_ch = 0; in_ch < in_channels; in_ch = in_ch + 1) {
+                builder::annotate("Comment: looping over the output");
+                for (dyn_var<int> h = 0; h < output.height; h = h + 1) {
+                    for (dyn_var<int> w = 0; w < output.width; w = w + 1) {
+                        out_idx =  bid * output.in_channels * output.height * output.width + out_ch * output.width * output.height + h * output.width + w;
+                        dyn_var<int> img_val;
+                        dyn_var<int> ki;
+                        dyn_var<int> kj;
+                        dyn_var<int> bound_i = pad_h - h * stride[0];
+                        dyn_var<int> bound_j = pad_w - w * stride[1];
+
+                        builder::annotate("Comment: looping over the kernel");
+                        for (ki = 0; ki < min(bound_i, wh * dilation[0]); ki = ki + dilation[0]) {
+                            // if (ki >= wh * dilation[0]) break;
+                            output.data[out_idx] = 0;
+                        }
+                        for (; ki < min(orig_ih + bound_i, wh * dilation[0]); ki = ki + dilation[0]) {
+                            // if (ki >= wh * dilation[0]) break;
+                            for (kj = 0; kj < min(bound_j, ww * dilation[1]); kj = kj + dilation[1]) {
+                                // if (kj >= ww * dilation[1]) break;
+                                output.data[out_idx] = 0;
+                            }
+                            for (; kj < min(orig_iw + bound_j, ww * dilation[1]); kj = kj + dilation[1]) {
+                                // if (kj >= ww * dilation[1]) break;
+                                img_val = inp_data[bid * in_channels * orig_iw * orig_ih + in_ch * orig_iw * orig_ih + (ki - bound_i) * orig_iw + (kj - bound_j)];
+                                weight_idx = out_ch * in_channels * ww * wh + in_ch * ww * wh + (ki / dilation[0]) * ww + (kj / dilation[1]);
+                                output.data[out_idx] = output.data[out_idx] + img_val * weight_data[weight_idx];
+                            }
+                            for (; kj < min(iw - w * stride[1], ww * dilation[1]); kj = kj +dilation[1]) {
+                                // if (kj >= ww * dilation[1]) break;
+                                output.data[out_idx] = 0;
+                            }
+                        }
+                        for (; ki < min(ih - h * stride[0], wh * dilation[0]); ki = ki + dilation[0]) {
+                            // if (ki >= wh * dilation[0]) break;
+                            // img_val = 0;
+                            output.data[out_idx] = 0;
+                        }
+                        
+                    }
+                }
+            }
+        }
+    }
+    return output;
+}
+*/
 
