@@ -15,6 +15,7 @@ int main() {
     // code_file << "#include \"runtime_functions.h\"" << std::endl;
     // code_file << "#include \"runtime_types.h\"\n" << std::endl;
     code_file << "#include <assert.h>\n" << std::endl;
+    code_file << "#include <omp.h>\n" << std::endl;
     
     int num_tests = 13;
     std::string func_name[] = {

@@ -35,8 +35,7 @@ endif
 
 LIBRARY=$(BUILD_DIR)/lib$(LIBRARY_NAME).a
 
-CFLAGS+=-Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wmissing-declarations -Woverloaded-virtual -pedantic-errors -Wno-deprecated -Wdelete-non-virtual-dtor -Werror 
-# -fno-move-loop-invariants
+CFLAGS+=-Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wmissing-declarations -Woverloaded-virtual -pedantic-errors -Wno-deprecated -Wdelete-non-virtual-dtor -Werror -fopenmp -fno-move-loop-invariants
 all: executables 
 
 .PHONY: subsystem
