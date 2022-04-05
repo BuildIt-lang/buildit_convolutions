@@ -11,8 +11,6 @@ using conv::KernelT;
 
 ImageT dyn_conv2d(ImageT input, KernelT weight, ConvOptions options);
 
-dyn_var<int> min(dyn_var<int> a, dyn_var<int> b);
-
 ImageT static_conv2d(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int iw, int ih, int ww, int wh, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
                     int* padding, int padding_same);

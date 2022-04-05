@@ -23,6 +23,7 @@ struct ImageT {
     int width;
     int height;
     T* data;
+    int mult_cnt;
     void print() {
         for (int i = 0; i < height; i = i + 1) {
             for (int j = 0; j < width; j = j + 1) {

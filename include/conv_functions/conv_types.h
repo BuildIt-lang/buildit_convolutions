@@ -59,6 +59,7 @@ struct ImageT: public dyn_var<builder::name<image_t_name>> {
     dyn_var<int> height = as_member_of(this, "height");
     dyn_var<int*> data = as_member_of(this, "data");
     dyn_var<void(void)> print = as_member_of(this, "print");
+    dyn_var<int> mult_cnt = as_member_of(this, "mult_cnt");
 };
 
 struct KernelT: public dyn_var<builder::name<kernel_t_name>> {

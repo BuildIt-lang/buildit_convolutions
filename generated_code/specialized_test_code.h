@@ -11,6 +11,7 @@ conv_runtime::ImageT<int> conv2d_default_im5x5_w3x3 (int* arg0, int* arg1) {
   var2.in_channels = 1;
   var2.batch_size = 1;
   var2.data = conv_runtime::conv_calloc(9, 4);
+  var2.mult_cnt = 0;
   // looping over batches
   for (int var3 = 0; var3 < 1; var3 = var3 + 1) {
     int var4;
@@ -39,6 +40,7 @@ conv_runtime::ImageT<int> conv2d_default_im5x5_w3x3 (int* arg0, int* arg1) {
                     int var14 = arg0[(((((var3 * 1) * 5) * 5) + ((var7 * 5) * 5)) + ((var11 - 0) * 5)) + (var13 - 0)];
                     var5 = (((((var6 * 1) * 3) * 3) + ((var7 * 3) * 3)) + (var10 * 3)) + var12;
                     var2.data[var4] = var2.data[var4] + (var14 * arg1[var5]);
+                    var2.mult_cnt = var2.mult_cnt + 1;
                   } else {
                     break;
                   }
@@ -66,6 +68,7 @@ conv_runtime::ImageT<int> conv2d_stride2x1_im8x10_w3x2 (int* arg0, int* arg1) {
   var2.in_channels = 1;
   var2.batch_size = 1;
   var2.data = conv_runtime::conv_calloc(27, 4);
+  var2.mult_cnt = 0;
   // looping over batches
   for (int var3 = 0; var3 < 1; var3 = var3 + 1) {
     int var4;
@@ -94,6 +97,7 @@ conv_runtime::ImageT<int> conv2d_stride2x1_im8x10_w3x2 (int* arg0, int* arg1) {
                     int var14 = arg0[(((((var3 * 1) * 10) * 8) + ((var7 * 10) * 8)) + ((var11 - 0) * 10)) + (var13 - 0)];
                     var5 = (((((var6 * 1) * 2) * 3) + ((var7 * 2) * 3)) + (var10 * 2)) + var12;
                     var2.data[var4] = var2.data[var4] + (var14 * arg1[var5]);
+                    var2.mult_cnt = var2.mult_cnt + 1;
                   } else {
                     break;
                   }
@@ -121,6 +125,7 @@ conv_runtime::ImageT<int> conv2d_dil3x2_im20x15_w3x2 (int* arg0, int* arg1) {
   var2.in_channels = 1;
   var2.batch_size = 1;
   var2.data = conv_runtime::conv_calloc(182, 4);
+  var2.mult_cnt = 0;
   // looping over batches
   for (int var3 = 0; var3 < 1; var3 = var3 + 1) {
     int var4;
@@ -149,6 +154,7 @@ conv_runtime::ImageT<int> conv2d_dil3x2_im20x15_w3x2 (int* arg0, int* arg1) {
                     int var14 = arg0[(((((var3 * 1) * 15) * 20) + ((var7 * 15) * 20)) + ((var11 - 0) * 15)) + (var13 - 0)];
                     var5 = (((((var6 * 1) * 2) * 3) + ((var7 * 2) * 3)) + (var10 * 2)) + var12;
                     var2.data[var4] = var2.data[var4] + (var14 * arg1[var5]);
+                    var2.mult_cnt = var2.mult_cnt + 1;
                   } else {
                     break;
                   }
@@ -176,6 +182,7 @@ conv_runtime::ImageT<int> conv2d_stride2x3_dil3x2_im20x15_w3x2 (int* arg0, int* 
   var2.in_channels = 1;
   var2.batch_size = 1;
   var2.data = conv_runtime::conv_calloc(35, 4);
+  var2.mult_cnt = 0;
   // looping over batches
   for (int var3 = 0; var3 < 1; var3 = var3 + 1) {
     int var4;
@@ -204,6 +211,7 @@ conv_runtime::ImageT<int> conv2d_stride2x3_dil3x2_im20x15_w3x2 (int* arg0, int* 
                     int var14 = arg0[(((((var3 * 1) * 15) * 20) + ((var7 * 15) * 20)) + ((var11 - 0) * 15)) + (var13 - 0)];
                     var5 = (((((var6 * 1) * 2) * 3) + ((var7 * 2) * 3)) + (var10 * 2)) + var12;
                     var2.data[var4] = var2.data[var4] + (var14 * arg1[var5]);
+                    var2.mult_cnt = var2.mult_cnt + 1;
                   } else {
                     break;
                   }
@@ -231,6 +239,7 @@ conv_runtime::ImageT<int> conv2d_pad1x2_im5x5_w3x2 (int* arg0, int* arg1) {
   var2.in_channels = 1;
   var2.batch_size = 1;
   var2.data = conv_runtime::conv_calloc(40, 4);
+  var2.mult_cnt = 0;
   // looping over batches
   for (int var3 = 0; var3 < 1; var3 = var3 + 1) {
     int var4;
@@ -259,6 +268,7 @@ conv_runtime::ImageT<int> conv2d_pad1x2_im5x5_w3x2 (int* arg0, int* arg1) {
                     int var14 = arg0[(((((var3 * 1) * 5) * 5) + ((var7 * 5) * 5)) + ((var11 - 1) * 5)) + (var13 - 2)];
                     var5 = (((((var6 * 1) * 2) * 3) + ((var7 * 2) * 3)) + (var10 * 2)) + var12;
                     var2.data[var4] = var2.data[var4] + (var14 * arg1[var5]);
+                    var2.mult_cnt = var2.mult_cnt + 1;
                   } else {
                     break;
                   }
@@ -287,6 +297,7 @@ conv_runtime::ImageT<int> conv2d_padsame_im5x5_w3x3 (int* arg0, int* arg1) {
   var2.in_channels = 1;
   var2.batch_size = 1;
   var2.data = conv_runtime::conv_calloc(25, 4);
+  var2.mult_cnt = 0;
   // looping over batches
   for (int var3 = 0; var3 < 1; var3 = var3 + 1) {
     int var4;
@@ -315,6 +326,7 @@ conv_runtime::ImageT<int> conv2d_padsame_im5x5_w3x3 (int* arg0, int* arg1) {
                     int var14 = arg0[(((((var3 * 1) * 5) * 5) + ((var7 * 5) * 5)) + ((var11 - 1) * 5)) + (var13 - 1)];
                     var5 = (((((var6 * 1) * 3) * 3) + ((var7 * 3) * 3)) + (var10 * 3)) + var12;
                     var2.data[var4] = var2.data[var4] + (var14 * arg1[var5]);
+                    var2.mult_cnt = var2.mult_cnt + 1;
                   } else {
                     break;
                   }
@@ -342,6 +354,7 @@ conv_runtime::ImageT<int> conv2d_dil3x2_stride2x3_pad3x4_im15x20_w3x2 (int* arg0
   var2.in_channels = 1;
   var2.batch_size = 1;
   var2.data = conv_runtime::conv_calloc(70, 4);
+  var2.mult_cnt = 0;
   // looping over batches
   for (int var3 = 0; var3 < 1; var3 = var3 + 1) {
     int var4;
@@ -370,6 +383,7 @@ conv_runtime::ImageT<int> conv2d_dil3x2_stride2x3_pad3x4_im15x20_w3x2 (int* arg0
                     int var14 = arg0[(((((var3 * 1) * 15) * 20) + ((var7 * 15) * 20)) + ((var11 - 3) * 15)) + (var13 - 4)];
                     var5 = (((((var6 * 1) * 2) * 3) + ((var7 * 2) * 3)) + (var10 * 2)) + var12;
                     var2.data[var4] = var2.data[var4] + (var14 * arg1[var5]);
+                    var2.mult_cnt = var2.mult_cnt + 1;
                   } else {
                     break;
                   }
@@ -398,6 +412,7 @@ conv_runtime::ImageT<int> conv2d_dil3x2_padsame_im15x20_w3x3 (int* arg0, int* ar
   var2.in_channels = 1;
   var2.batch_size = 1;
   var2.data = conv_runtime::conv_calloc(300, 4);
+  var2.mult_cnt = 0;
   // looping over batches
   for (int var3 = 0; var3 < 1; var3 = var3 + 1) {
     int var4;
@@ -426,6 +441,7 @@ conv_runtime::ImageT<int> conv2d_dil3x2_padsame_im15x20_w3x3 (int* arg0, int* ar
                     int var14 = arg0[(((((var3 * 1) * 15) * 20) + ((var7 * 15) * 20)) + ((var11 - 3) * 15)) + (var13 - 2)];
                     var5 = (((((var6 * 1) * 3) * 3) + ((var7 * 3) * 3)) + (var10 * 3)) + var12;
                     var2.data[var4] = var2.data[var4] + (var14 * arg1[var5]);
+                    var2.mult_cnt = var2.mult_cnt + 1;
                   } else {
                     break;
                   }
@@ -453,6 +469,7 @@ conv_runtime::ImageT<int> conv2d_dil2x2_stride2x4_pad5x4_im20x20_w3x3_batch5 (in
   var2.in_channels = 1;
   var2.batch_size = 5;
   var2.data = conv_runtime::conv_calloc(390, 4);
+  var2.mult_cnt = 0;
   // looping over batches
   for (int var3 = 0; var3 < 5; var3 = var3 + 1) {
     int var4;
@@ -481,6 +498,7 @@ conv_runtime::ImageT<int> conv2d_dil2x2_stride2x4_pad5x4_im20x20_w3x3_batch5 (in
                     int var14 = arg0[(((((var3 * 1) * 20) * 20) + ((var7 * 20) * 20)) + ((var11 - 5) * 20)) + (var13 - 4)];
                     var5 = (((((var6 * 1) * 3) * 3) + ((var7 * 3) * 3)) + (var10 * 3)) + var12;
                     var2.data[var4] = var2.data[var4] + (var14 * arg1[var5]);
+                    var2.mult_cnt = var2.mult_cnt + 1;
                   } else {
                     break;
                   }
@@ -508,6 +526,7 @@ conv_runtime::ImageT<int> conv2d_dil2x2_stride2x4_pad5x4_im20x20_w5x5_batch4_inc
   var2.in_channels = 5;
   var2.batch_size = 4;
   var2.data = conv_runtime::conv_calloc(1100, 4);
+  var2.mult_cnt = 0;
   // looping over batches
   for (int var3 = 0; var3 < 4; var3 = var3 + 1) {
     int var4;
@@ -536,6 +555,7 @@ conv_runtime::ImageT<int> conv2d_dil2x2_stride2x4_pad5x4_im20x20_w5x5_batch4_inc
                     int var14 = arg0[(((((var3 * 3) * 20) * 20) + ((var7 * 20) * 20)) + ((var11 - 5) * 20)) + (var13 - 4)];
                     var5 = (((((var6 * 3) * 5) * 5) + ((var7 * 5) * 5)) + (var10 * 5)) + var12;
                     var2.data[var4] = var2.data[var4] + (var14 * arg1[var5]);
+                    var2.mult_cnt = var2.mult_cnt + 1;
                   } else {
                     break;
                   }
@@ -563,6 +583,7 @@ conv_runtime::ImageT<int> conv2d_im100x100_w10x10_batch10_inch10_outch10 (int* a
   var2.in_channels = 10;
   var2.batch_size = 10;
   var2.data = conv_runtime::conv_calloc(828100, 4);
+  var2.mult_cnt = 0;
   // looping over batches
   for (int var3 = 0; var3 < 10; var3 = var3 + 1) {
     int var4;
@@ -591,6 +612,7 @@ conv_runtime::ImageT<int> conv2d_im100x100_w10x10_batch10_inch10_outch10 (int* a
                     int var14 = arg0[(((((var3 * 10) * 100) * 100) + ((var7 * 100) * 100)) + ((var11 - 0) * 100)) + (var13 - 0)];
                     var5 = (((((var6 * 10) * 10) * 10) + ((var7 * 10) * 10)) + (var10 * 10)) + var12;
                     var2.data[var4] = var2.data[var4] + (var14 * arg1[var5]);
+                    var2.mult_cnt = var2.mult_cnt + 1;
                   } else {
                     break;
                   }
@@ -618,6 +640,7 @@ conv_runtime::ImageT<int> conv2d_stride4x4_im100x100_w10x10_batch10_inch5_outch1
   var2.in_channels = 10;
   var2.batch_size = 10;
   var2.data = conv_runtime::conv_calloc(52900, 4);
+  var2.mult_cnt = 0;
   // looping over batches
   for (int var3 = 0; var3 < 10; var3 = var3 + 1) {
     int var4;
@@ -646,6 +669,7 @@ conv_runtime::ImageT<int> conv2d_stride4x4_im100x100_w10x10_batch10_inch5_outch1
                     int var14 = arg0[(((((var3 * 5) * 100) * 100) + ((var7 * 100) * 100)) + ((var11 - 0) * 100)) + (var13 - 0)];
                     var5 = (((((var6 * 5) * 10) * 10) + ((var7 * 10) * 10)) + (var10 * 10)) + var12;
                     var2.data[var4] = var2.data[var4] + (var14 * arg1[var5]);
+                    var2.mult_cnt = var2.mult_cnt + 1;
                   } else {
                     break;
                   }
@@ -673,6 +697,7 @@ conv_runtime::ImageT<int> conv2d_im10x10_w5x5_batch10_inch5_outch1 (int* arg0, i
   var2.in_channels = 1;
   var2.batch_size = 10;
   var2.data = conv_runtime::conv_calloc(360, 4);
+  var2.mult_cnt = 0;
   // looping over batches
   for (int var3 = 0; var3 < 10; var3 = var3 + 1) {
     int var4;
@@ -701,6 +726,7 @@ conv_runtime::ImageT<int> conv2d_im10x10_w5x5_batch10_inch5_outch1 (int* arg0, i
                     int var14 = arg0[(((((var3 * 5) * 10) * 10) + ((var7 * 10) * 10)) + ((var11 - 0) * 10)) + (var13 - 0)];
                     var5 = (((((var6 * 5) * 5) * 5) + ((var7 * 5) * 5)) + (var10 * 5)) + var12;
                     var2.data[var4] = var2.data[var4] + (var14 * arg1[var5]);
+                    var2.mult_cnt = var2.mult_cnt + 1;
                   } else {
                     break;
                   }

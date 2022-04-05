@@ -96,6 +96,7 @@ void test_static_conv2d(TestOptions opt, ImageT<int> (*func)(int*, int*), string
     int* kernel_data = torch_kernel.data_ptr<int>();
     ImageT<int> conv_output = func(inp_data, kernel_data);
     // conv_output.print();
+    std::cout << conv_output.mult_cnt << std::endl;
     compare(torch_output, conv_output, test_name, "");
 }
 

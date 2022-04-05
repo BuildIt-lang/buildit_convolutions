@@ -4,3 +4,4 @@ build/*
 .vscode
 test/build/*
 timing/build/*
+generated_code/
