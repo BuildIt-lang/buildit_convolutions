@@ -98,7 +98,7 @@ void time_specialized_conv2d(int iw, int ih, int ww, int wh, int b_sz, int in_ch
     
     // std::cout << torch_output << std::endl;
     // conv_output_final.print();
-    std::cout << "torch_time: " << torch_time << "ms, general_conv_time: " << specialized_conv_time << "ms" << ", multiplications: " << spec_conv_output.mult_cnt << std::endl;
+    std::cout << "torch_time: " << torch_time << "ms, specialized_conv_time: " << specialized_conv_time << "ms" << ", multiplications: " << spec_conv_output.mult_cnt << std::endl;
     compare(torch_output, spec_conv_output, test_name, "specialized");
 }
 
