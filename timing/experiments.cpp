@@ -29,10 +29,10 @@ void compare(Tensor expected, conv_runtime::ImageT<int> result, string test_name
     assert (result.width == expected.size(3));
     int w = result.width;
     int h = result.height;
-    float* expected_arr = expected.data_ptr<float>();
+    int* expected_arr = expected.data_ptr<int>();
     for (int i = 0; i < h; i++) {
         for (int j = 0; j < w; j++) {
-            assert(result.data[i*w+j] == (int)expected_arr[i*w+j]);
+            assert(result.data[i*w+j] == expected_arr[i*w+j]);
         }
     }
     std::cout << ": PASSED" << std::endl;
@@ -52,8 +52,8 @@ void time_specialized_conv2d(int iw, int ih, int ww, int wh, int b_sz, int in_ch
     int64_t lo = 0;
     int64_t hi = 100;
     int n_iters = 10;
-    Tensor torch_input = torch::randint(lo, hi, {b_sz, in_ch, ih, iw}).to(torch::kFloat); // using float here because dilation doesn't work with int in torch
-    Tensor torch_weight = torch::randint(lo, hi, {out_ch, in_ch, wh, ww}).to(torch::kFloat);
+    Tensor torch_input = torch::randint(lo, hi, {b_sz, in_ch, ih, iw}).to(torch::kInt32); // use float here if using dilation
+    Tensor torch_weight = torch::randint(lo, hi, {out_ch, in_ch, wh, ww}).to(torch::kInt32);
 
     // covert params to torch arrays
     F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
@@ -69,8 +69,9 @@ void time_specialized_conv2d(int iw, int ih, int ww, int wh, int b_sz, int in_ch
 
     // time the torch implementation
     conv_runtime::start_timer();
+    Tensor torch_output;
     for (int iter = 0; iter < n_iters; iter++) {
-        Tensor torch_output = F::conv2d(torch_input, torch_weight, torch_options);
+        torch_output = F::conv2d(torch_input, torch_weight, torch_options);
     }
     float torch_time = conv_runtime::stop_timer() / n_iters;
 
@@ -80,45 +81,42 @@ void time_specialized_conv2d(int iw, int ih, int ww, int wh, int b_sz, int in_ch
     int* inp_data = torch_inp.data_ptr<int>();
     int* kernel_data = torch_kernel.data_ptr<int>();
     conv_runtime::start_timer();
+    conv_runtime::ImageT<int> spec_conv_output;
     for (int iter = 0; iter < n_iters; iter++) {
-        conv_runtime::ImageT<int> spec_conv_output = func(inp_data, kernel_data);
+        spec_conv_output = func(inp_data, kernel_data);
     }
     float specialized_conv_time = conv_runtime::stop_timer() / n_iters;
-
+    
     conv_runtime::ImageT<int> conv_input = {.batch_size = b_sz, .in_channels = in_ch, .width = iw, .height = ih, .data = torch_inp.data_ptr<int>()};
     conv_runtime::KernelT<int> conv_weight = {.out_channels = out_ch, .in_channels = in_ch, .width = ww, .height = wh, .data = torch_kernel.data_ptr<int>()};
     conv_runtime::ConvOptions conv_options = {.stride = stride, .padding = padding, .dilation = dilation, .groups = 1};
     conv_runtime::start_timer();
     for (int iter = 0; iter < n_iters; iter++) {
-        conv_runtime::ImageT<int> gen_conv_output = buildit_conv2d(conv_input, conv_weight, conv_options);
+        // conv_runtime::ImageT<int> gen_conv_output = buildit_conv2d(conv_input, conv_weight, conv_options);
     }
     float general_conv_time = conv_runtime::stop_timer() / n_iters;
-
+    
     // std::cout << torch_output << std::endl;
     // conv_output_final.print();
-    std::cout << "torch_time: " << torch_time << "ms, general_conv_time: " << general_conv_time << "ms, specialized_conv_time: " << specialized_conv_time << "ms" << std::endl;
-    Tensor torch_output_final = F::conv2d(torch_input, torch_weight, torch_options);
-    conv_runtime::ImageT<int> conv_output_spec = func(inp_data, kernel_data);
-    conv_runtime::ImageT<int> conv_output_gen = buildit_conv2d(conv_input, conv_weight, conv_options);
-    compare(torch_output_final, conv_output_spec, test_name, "specialized");
-    compare(torch_output_final, conv_output_gen, test_name, "general");
+    std::cout << "torch_time: " << torch_time << "ms, general_conv_time: " << specialized_conv_time << "ms" << ", multiplications: " << spec_conv_output.mult_cnt << std::endl;
+    compare(torch_output, spec_conv_output, test_name, "specialized");
 }
 
 void run() {
-    int n_runs = 8;
-    int iw[] = {10, 100, 100, 100, 100, 1000, 1000, 1000};
-    int ih[] = {10, 100, 100, 100, 100, 1000, 1000, 1000};
-    int kw[] = {3, 10, 10, 10, 10, 10, 10, 10};
-    int kh[] = {3, 10, 10, 10, 10, 10, 10, 10};
-    int batch_size[] = {10, 10, 10, 10, 10, 10, 10, 10};
-    int in_channels[] = {5, 5, 5, 10, 10, 10, 10, 100};
-    int out_channels[] = {10, 10, 10, 10, 1, 10, 100, 10};
-    int stride[][2] = {{1, 1}, {1, 1}, {4, 4}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}};
-    int padding[][2] = {{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}};
-    int dilation[][2] = {{1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}};
+    int n_runs = 6;
+    int iw[] = {100, 100, 200, 200, 300, 300};
+    int ih[] = {100, 100, 200, 200, 300, 300};
+    int kw[] = {10, 10, 10, 10, 10, 10};
+    int kh[] = {10, 10, 10, 10, 10, 10};
+    int batch_size[] = {10, 20, 10, 20, 10, 20};
+    int in_channels[] = {10, 10, 10, 10, 10, 10};
+    int out_channels[] = {10, 10, 10, 10, 10, 10};
+    int stride[][2] = {{1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}};
+    int padding[][2] = {{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}};
+    int dilation[][2] = {{1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}};
     int padding_same[] = {0, 0, 0, 0, 0, 0, 0, 0};
-    std::string func_names[] = {"f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8"};
-    GeneratedFunction functions[] = {&f1, &f2, &f3, &f4, &f5, &f6, &f7, &f8};
+    std::string func_names[] = {"f1", "f2", "f3", "f4", "f5", "f6"};
+    GeneratedFunction functions[] = {&f1, &f2, &f3, &f4, &f5, &f6};
 
     for (int i = 0; i < n_runs; i++) {
         time_specialized_conv2d(iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], functions[i], func_names[i]);
