@@ -12,8 +12,9 @@ using builder::static_var;
 int main() {
     std::ofstream code_file;
     code_file.open("./generated_code/specialized_timing_code.h");
-    code_file << "#include <assert.h>\n" << std::endl;
-    
+    code_file << "#include <assert.h>" << std::endl;
+    code_file << "#include <omp.h>" << std::endl;
+
     int n_runs = 6;
     int iw[] = {100, 100, 200, 200, 300, 300};
     int ih[] = {100, 100, 200, 200, 300, 300};

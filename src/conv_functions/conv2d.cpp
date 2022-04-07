@@ -117,11 +117,11 @@ ImageT static_conv2d(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig
     output.batch_size = batch_size;
     static_var<int> size = ow * oh * batch_size * out_channels;
     output.data = conv::runtime::conv_calloc(size, (int)sizeof(int));
-    builder::annotate("parallel for | Comment: looping over batches");
+    builder::annotate("Comment: looping over batches | omp parallel for collapse(3)");
     for (dyn_var<int> bid = 0; bid < batch_size; bid = bid + 1) {
-        builder::annotate("parallel for | Comment: looping over out channels");
+        builder::annotate("Comment: looping over out channels");
         for (dyn_var<int> out_ch = 0; out_ch < out_channels; out_ch = out_ch + 1) {
-            builder::annotate("parallel for | Comment: looping over in channels");
+            builder::annotate("Comment: looping over in channels");
             for (dyn_var<int> in_ch = 0; in_ch < in_channels; in_ch = in_ch + 1) {
                 dyn_var<int> out_idx;
                 dyn_var<int> weight_idx;

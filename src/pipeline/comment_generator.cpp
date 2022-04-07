@@ -35,7 +35,7 @@ void commented_code_generator::visit(for_stmt::Ptr a) {
         oss << std::endl;
         oss << "}" << std::endl;
     } else if (curr_annotation.find("parallel for") != std::string::npos) {
-        oss << "#pragma omp parallel for" << std::endl;
+        oss << "#pragma " << curr_annotation << std::endl;
         printer::indent(oss, curr_indent);
         commented_code_generator::visit(a);
     } else  {
