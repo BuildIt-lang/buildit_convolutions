@@ -6,7 +6,7 @@ add_library(libbuildit MODULE IMPORTED)
 add_library(libconv MODULE IMPORTED)
 set_target_properties( libbuildit PROPERTIES IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/../buildit/build/libbuildit.a")
 set_target_properties( libconv PROPERTIES IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/../build/libconv.a")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS} -fopenmp")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS} -fopenmp -O3")
 set(SOURCES "experiments.cpp")
 
 add_executable(conv_performance ${SOURCES})

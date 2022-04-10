@@ -15,6 +15,8 @@ ImageT static_conv2d(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int iw, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
                     int* padding, int padding_same);
 
+void get_bounds(int* img_bounds, int* ker_bounds, int out_size, int ker_size, int pad, int stride, int dilation, int orig_size, int im_size);
+
 ImageT static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
                     int* padding, int padding_same);
