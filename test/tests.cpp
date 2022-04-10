@@ -336,6 +336,15 @@ void test_static_all() {
                                     .stride = default_stride, .padding_same = 0, .padding = default_padding, .dilation = default_dilation};
     test_static_conv2d(options, &conv2d_im10x10_w5x5_batch10_inch5_outch1, "im10x10_w5x5_batch10_inch5_outch1");
 
+    dilation[0] = 4;
+    dilation[1] = 4;
+    padding[0] = 10;
+    padding[1] = 10;
+    options = {.iw = 10, .ih = 10, .ww = 3, .wh = 3, .batch_size = 1, .in_channels = 5, .out_channels = 3, 
+                                    .stride = default_stride, .padding_same = 0, .padding = padding, .dilation = dilation};
+    test_static_conv2d(options, &conv2d_pad10x10_dil4x4_im10x10_w3x3_batch1_inch5_outch3, "pad10x10_dil4x4_im10x10_w3x3_batch1_inch5_outch3");
+
+
 }
 
 

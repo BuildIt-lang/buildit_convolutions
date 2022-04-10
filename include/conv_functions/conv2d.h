@@ -14,3 +14,7 @@ ImageT dyn_conv2d(ImageT input, KernelT weight, ConvOptions options);
 ImageT static_conv2d(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int iw, int ih, int ww, int wh, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
                     int* padding, int padding_same);
+
+ImageT static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
+                    int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
+                    int* padding, int padding_same);
