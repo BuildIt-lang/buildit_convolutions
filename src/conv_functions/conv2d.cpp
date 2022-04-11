@@ -253,6 +253,13 @@ ImageT static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> weight_
 
     static_var<int> oh = (ih - dilation[0] * (wh - 1) - 1) / stride[0] + 1;
     static_var<int> ow = (iw - dilation[1] * (ww - 1) - 1) / stride[1] + 1;
+    static_var<int> oh_times_ow = oh * ow;
+    static_var<int> inch_oh_ow = out_channels * oh_times_ow;
+
+    static_var<int> orig_h_w = orig_ih * orig_iw;
+    static_var<int> orig_inch_h_w = in_channels * orig_h_w;
+    static_var<int> ker_w_h = ww * wh;
+    static_var<int> ker_inch_w_h = in_channels * ker_w_h;
 
     ImageT output;
     output.height = oh;
@@ -288,27 +295,29 @@ ImageT static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> weight_
                                 int w_hi = img_bounds_w[r2 * 2 + 1];
                                 if (w_lo <= w_hi) {
                                     for (dyn_var<int> w = w_lo; w < w_hi; w = w + 1) {
-                                        out_idx =  bid * output.in_channels * output.height * output.width + out_ch * output.width * output.height + h * output.width + w;
+                                        out_idx =  bid * inch_oh_ow + out_ch * oh_times_ow + h * output.width + w;
+                                        dyn_var<int> w_stride = w * stride[1];
+                                        dyn_var<int> h_stride = h * stride[0];
                                         if (r1 == 2 && r2 == 2) { // the kernel completely fits inside the orig image
                                             for (dyn_var<int> i = 0; i < wh; i = i + 1) {
-                                                dyn_var<int> im_i = h * stride[0] + i * dilation[0];
+                                                dyn_var<int> im_i = h_stride + i * dilation[0];
                                                 for (dyn_var<int> j = 0; j < ww; j = j + 1) {
-                                                    dyn_var<int> im_j = w * stride[1] + j * dilation[1];
-                                                    dyn_var<int> img_val = inp_data[bid * in_channels * orig_iw * orig_ih + in_ch * orig_iw * orig_ih + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
-                                                    weight_idx = out_ch * in_channels * ww * wh + in_ch * ww * wh + i * ww + j;
+                                                    dyn_var<int> im_j = w_stride + j * dilation[1];
+                                                    dyn_var<int> img_val = inp_data[bid * orig_inch_h_w + in_ch * orig_h_w + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
+                                                    weight_idx = out_ch * ker_inch_w_h + in_ch * ker_w_h + i * ww + j;
                                                     output.data[out_idx] = output.data[out_idx] + img_val * weight_data[weight_idx];
                                                     counter = counter + 1;
                                                 }
                                             }
                                         } else if (r1 == 2) {
                                             for (dyn_var<int> i = 0; i < wh; i = i + 1) {
-                                                dyn_var<int> im_i = h * stride[0] + i * dilation[0];
+                                                dyn_var<int> im_i = h_stride + i * dilation[0];
                                                 for (dyn_var<int> j = 0; j < ww; j = j + 1) {
-                                                    dyn_var<int> im_j = w * stride[1] + j * dilation[1];
+                                                    dyn_var<int> im_j = w_stride + j * dilation[1];
                                                     if (im_j < pad_w) continue;
                                                     else if (im_j < orig_iw + pad_w) {
-                                                        dyn_var<int> img_val = inp_data[bid * in_channels * orig_iw * orig_ih + in_ch * orig_iw * orig_ih + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
-                                                        weight_idx = out_ch * in_channels * ww * wh + in_ch * ww * wh + i * ww + j;
+                                                        dyn_var<int> img_val = inp_data[bid * orig_inch_h_w + in_ch * orig_h_w + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
+                                                        weight_idx = out_ch * ker_inch_w_h + in_ch * ker_w_h + i * ww + j;
                                                         output.data[out_idx] = output.data[out_idx] + img_val * weight_data[weight_idx];
                                                         counter = counter + 1;
                                                     }
@@ -317,14 +326,14 @@ ImageT static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> weight_
                                             }
                                         } else if (r2 == 2) {
                                             for (dyn_var<int> i = 0; i < wh; i = i + 1) {
-                                                dyn_var<int> im_i = h * stride[0] + i * dilation[0];
+                                                dyn_var<int> im_i = h_stride + i * dilation[0];
                                                 if (im_i < pad_h) {
                                                     continue;
                                                 } else if (im_i < orig_ih + pad_h) {
                                                     for (dyn_var<int> j = 0; j < ww; j = j + 1) {
-                                                        dyn_var<int> im_j = w * stride[1] + j * dilation[1];
-                                                        dyn_var<int> img_val = inp_data[bid * in_channels * orig_iw * orig_ih + in_ch * orig_iw * orig_ih + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
-                                                        weight_idx = out_ch * in_channels * ww * wh + in_ch * ww * wh + i * ww + j;
+                                                        dyn_var<int> im_j = w_stride + j * dilation[1];
+                                                        dyn_var<int> img_val = inp_data[bid * orig_inch_h_w + in_ch * orig_h_w + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
+                                                        weight_idx = out_ch * ker_inch_w_h + in_ch * ker_w_h + i * ww + j;
                                                         output.data[out_idx] = output.data[out_idx] + img_val * weight_data[weight_idx];
                                                         counter = counter + 1;
                                                         
@@ -333,16 +342,16 @@ ImageT static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> weight_
                                             }
                                         } else {
                                             for (dyn_var<int> i = 0; i < wh; i = i + 1) {
-                                                dyn_var<int> im_i = h * stride[0] + i * dilation[0];
+                                                dyn_var<int> im_i = h_stride + i * dilation[0];
                                                 if (im_i < pad_h) {
                                                     continue;
                                                 } else if (im_i < orig_ih + pad_h) {
                                                     for (dyn_var<int> j = 0; j < ww; j = j + 1) {
-                                                        dyn_var<int> im_j = w * stride[1] + j * dilation[1];
+                                                        dyn_var<int> im_j = w_stride + j * dilation[1];
                                                         if (im_j < pad_w) continue;
                                                         else if (im_j < orig_iw + pad_w) {
-                                                            dyn_var<int> img_val = inp_data[bid * in_channels * orig_iw * orig_ih + in_ch * orig_iw * orig_ih + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
-                                                            weight_idx = out_ch * in_channels * ww * wh + in_ch * ww * wh + i * ww + j;
+                                                            dyn_var<int> img_val = inp_data[bid * orig_inch_h_w + in_ch * orig_h_w + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
+                                                            weight_idx = out_ch * ker_inch_w_h + in_ch * ker_w_h + i * ww + j;
                                                             output.data[out_idx] = output.data[out_idx] + img_val * weight_data[weight_idx];
                                                             counter = counter + 1;
                                                         }
@@ -354,6 +363,10 @@ ImageT static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> weight_
                                     }
                                 }
                             }
+                            free(img_bounds_h);
+                            free(img_bounds_w);
+                            free(ker_bounds_h);
+                            free(ker_bounds_w);
                         }
                     }
                 }
