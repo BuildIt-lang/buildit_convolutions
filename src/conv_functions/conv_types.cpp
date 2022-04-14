@@ -5,5 +5,7 @@ namespace conv {
     const char padding_t_name[] = PADDING_T_NAME;
     const char convoptions_t_name[] = CONVOPTIONS_T_NAME;
     const char image_t_name[] = IMAGE_T_NAME;
+    const char image_t_name_int[] = "ImageT<int>";
+    const char image_t_name_float[] = "ImageT<float";
     const char kernel_t_name[] = KERNEL_T_NAME;
 }

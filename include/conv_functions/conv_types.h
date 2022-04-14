@@ -3,10 +3,10 @@
 #include "builder/dyn_var.h"
 #include "builder/builder.h"
 
+namespace conv {
 using builder::dyn_var;
 using builder::as_member_of;
 
-namespace conv {
 
 #define TENSOR_T_NAME "conv_runtime::TensorT<int>"
 extern const char tensor_t_name[sizeof(TENSOR_T_NAME)];
@@ -19,6 +19,8 @@ extern const char padding_t_name[sizeof(PADDING_T_NAME)];
 
 #define IMAGE_T_NAME "conv_runtime::ImageT<int>"
 extern const char image_t_name[sizeof(IMAGE_T_NAME)];
+extern const char image_t_name_int[];
+extern const char image_t_name_float[];
 
 #define KERNEL_T_NAME "conv_runtime::KernelT<int>"
 extern const char kernel_t_name[sizeof(KERNEL_T_NAME)];
@@ -43,9 +45,23 @@ struct TensorT: public dyn_var<builder::name<tensor_t_name>> {
     dyn_var<void(void)> print = as_member_of(this, "print");
 };
 
-struct ImageT: public dyn_var<builder::name<image_t_name>> {
-    typedef dyn_var<builder::name<image_t_name>> super;
-    using super_name = builder::name<image_t_name>;
+template <typename T>
+struct ImageTParentType;
+
+
+template <>
+struct ImageTParentType<int> {
+	typedef dyn_var<builder::name<image_t_name_int>> type;
+};
+template <>
+struct ImageTParentType<float> {
+	typedef dyn_var<builder::name<image_t_name_float>> type;
+};
+
+template <typename T>
+struct ImageT: public ImageTParentType<T>::type {
+    typedef typename ImageTParentType<T>::type super;
+
     using super::dyn_var;
     using super::operator=;
     ImageT(const ImageT &t): super((builder::builder)t) {}
@@ -53,13 +69,13 @@ struct ImageT: public dyn_var<builder::name<image_t_name>> {
 		return (*this) = (builder::builder)t;
 	}
 
-    dyn_var<int> batch_size = as_member_of(this, "batch_size");
-    dyn_var<int> in_channels = as_member_of(this, "in_channels");
-    dyn_var<int> width = as_member_of(this, "width");
-    dyn_var<int> height = as_member_of(this, "height");
-    dyn_var<int*> data = as_member_of(this, "data");
-    dyn_var<void(void)> print = as_member_of(this, "print");
-    dyn_var<int> mult_cnt = as_member_of(this, "mult_cnt");
+    builder::dyn_var<int> batch_size = builder::as_member_of(this, "batch_size");
+    builder::dyn_var<int> in_channels = builder::as_member_of(this, "in_channels");
+    builder::dyn_var<int> width = builder::as_member_of(this, "width");
+    builder::dyn_var<int> height = builder::as_member_of(this, "height");
+    builder::dyn_var<int*> data = builder::as_member_of(this, "data");
+    builder::dyn_var<void(void)> print = builder::as_member_of(this, "print");
+    builder::dyn_var<int> mult_cnt = builder::as_member_of(this, "mult_cnt");
 };
 
 struct KernelT: public dyn_var<builder::name<kernel_t_name>> {

@@ -13,7 +13,7 @@ using conv::ImageT;
 using conv::KernelT; 
 
 
-ImageT dyn_conv2d(ImageT input, KernelT weight, ConvOptions opt) {
+ImageT<int> dyn_conv2d(ImageT<int> input, KernelT weight, ConvOptions opt) {
 
     conv::runtime::conv_assert(input.in_channels == weight.in_channels);
     conv::runtime::conv_assert(weight.height <= input.height);
@@ -37,7 +37,7 @@ ImageT dyn_conv2d(ImageT input, KernelT weight, ConvOptions opt) {
         iw = input.width + 2 * pad_w;
     }
 
-    ImageT output;
+    ImageT<int> output;
     output.height = (ih - opt.dilation[0] * (weight.height - 1) - 1) / opt.stride[0] + 1;
     output.width = (iw - opt.dilation[1] * (weight.width - 1) - 1) / opt.stride[1] + 1;
     output.in_channels = weight.out_channels;
@@ -83,7 +83,7 @@ ImageT dyn_conv2d(ImageT input, KernelT weight, ConvOptions opt) {
     return output;
 }
 
-ImageT static_conv2d(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
+ImageT<int> static_conv2d(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
                     int* padding, int padding_same) {
 
@@ -110,7 +110,7 @@ ImageT static_conv2d(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig
     static_var<int> oh = (ih - dilation[0] * (wh - 1) - 1) / stride[0] + 1;
     static_var<int> ow = (iw - dilation[1] * (ww - 1) - 1) / stride[1] + 1;
 
-    ImageT output;
+    ImageT<int> output;
     output.height = oh;
     output.width = ow;
     output.in_channels = out_channels;
@@ -227,7 +227,7 @@ void get_bounds(int* img_bounds, int* ker_bounds, int out_size, int ker_size, in
     if (curr != -1) img_bounds[curr * 2 + 1] = out_size;
 }
 
-ImageT static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
+ImageT<int> static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
                     int* padding, int padding_same) {
 
@@ -261,7 +261,7 @@ ImageT static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> weight_
     static_var<int> ker_w_h = ww * wh;
     static_var<int> ker_inch_w_h = in_channels * ker_w_h;
 
-    ImageT output;
+    ImageT<int> output;
     output.height = oh;
     output.width = ow;
     output.in_channels = out_channels;
