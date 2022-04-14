@@ -6,9 +6,9 @@ INCLUDE_DIR=$(BASE_DIR)/include
 
 SAMPLES_DIR=$(BASE_DIR)/samples
 
-INCLUDES=$(wildcard $(INCLUDE_DIR)/*.h) $(wildcard $(INCLUDE_DIR)/*/*.h) $(wildcard $(BUILDIT_DIR)/include/*.h) $(wildcard $(BUILDIT_DIR)/include/*/*.h)
+INCLUDES=$(wildcard $(INCLUDE_DIR)/*.h) $(wildcard $(INCLUDE_DIR)/*/*.h) $(wildcard $(BUILDIT_DIR)/include/*.h) $(wildcard $(BUILDIT_DIR)/include/*/*.h) $(BUILD_DIR)/gen_headers/gen/compiler_headers.h
 
-INCLUDE_FLAG=-I$(INCLUDE_DIR) -I$(BUILDIT_DIR)/include
+INCLUDE_FLAG=-I$(INCLUDE_DIR) -I$(BUILDIT_DIR)/include -I$(BUILD_DIR)/gen_headers
 
 SRCS=$(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/*/*.cpp)
 SAMPLES_SRCS=$(wildcard $(SAMPLES_DIR)/*.cpp)
@@ -19,6 +19,9 @@ $(shell mkdir -p $(BUILD_DIR))
 $(shell mkdir -p $(BUILD_DIR)/samples)
 $(shell mkdir -p $(BUILD_DIR)/conv_functions)
 $(shell mkdir -p $(BUILD_DIR)/pipeline)
+$(shell mkdir -p $(BUILD_DIR)/gen_headers)
+$(shell mkdir -p $(BUILD_DIR)/gen_headers/gen)
+$(shell mkdir -p $(BASE_DIR)/scratch)
 
 BUILDIT_LIBRARY_NAME=buildit
 BUILDIT_LIBRARY_PATH=$(BUILDIT_DIR)/build
@@ -27,10 +30,10 @@ LIBRARY_NAME=conv
 DEBUG ?= 0
 ifeq ($(DEBUG),1)
 CFLAGS=-g -std=c++11 -O0
-LINKER_FLAGS=-rdynamic  -g -L$(BUILDIT_LIBRARY_PATH) -L$(BUILD_DIR) -l$(LIBRARY_NAME) -l$(BUILDIT_LIBRARY_NAME)
+LINKER_FLAGS=-rdynamic  -g -L$(BUILDIT_LIBRARY_PATH) -L$(BUILD_DIR) -l$(LIBRARY_NAME) -l$(BUILDIT_LIBRARY_NAME) -ldl
 else
 CFLAGS=-std=c++11 -O3
-LINKER_FLAGS=-rdynamic  -L$(BUILDIT_LIBRARY_PATH) -L$(BUILD_DIR) -l$(LIBRARY_NAME) -l$(BUILDIT_LIBRARY_NAME)
+LINKER_FLAGS=-rdynamic  -L$(BUILDIT_LIBRARY_PATH) -L$(BUILD_DIR) -l$(LIBRARY_NAME) -l$(BUILDIT_LIBRARY_NAME) -ldl
 endif
 
 LIBRARY=$(BUILD_DIR)/lib$(LIBRARY_NAME).a
@@ -46,6 +49,11 @@ subsystem:
 .PRECIOUS: $(BUILD_DIR)/samples/%.o
 .PRECIOUS: $(BUILD_DIR)/conv_functions/%.o
 .PRECIOUS: $(BUILD_DIR)/pipeline/%.o
+
+$(BUILD_DIR)/gen_headers/gen/compiler_headers.h:
+	echo "#pragma once" > $@
+	echo "#define GEN_TEMPLATE_NAME \"$(BASE_DIR)/scratch/code_XXXXXX\"" >> $@
+	echo "#define COMPILER_PATH \"$(CC)\"" >> $@
 
 $(BUILD_DIR)/samples/%.o: $(SAMPLES_DIR)/%.cpp $(INCLUDES)
 	$(CXX) $(CFLAGS) $< -o $@ $(INCLUDE_FLAG) -c 

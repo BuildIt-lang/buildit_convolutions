@@ -4,4 +4,5 @@ build/*
 .vscode
 test/build/*
 timing/build/*
+scratch/
 generated_code/*
