@@ -268,7 +268,7 @@ ImageT static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> weight_
     output.batch_size = batch_size;
     static_var<int> size = ow * oh * batch_size * out_channels;
     output.data = conv::runtime::conv_calloc(size, (int)sizeof(int));
-    builder::annotate("Comment: looping over batches | omp parallel for collapse(3)");
+    builder::annotate("Comment: looping over batches | #pragma omp parallel for collapse(3)");
     for (dyn_var<int> bid = 0; bid < batch_size; bid = bid + 1) {
         builder::annotate("Comment: looping over out channels");
         for (dyn_var<int> out_ch = 0; out_ch < out_channels; out_ch = out_ch + 1) {
@@ -278,10 +278,10 @@ ImageT static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> weight_
                 dyn_var<int> weight_idx;
                 dyn_var<int> counter = 0;
 
-                int* img_bounds_h = (int*)malloc(12 * sizeof(int));
-                int* ker_bounds_h = (int*)malloc(12 * sizeof(int));
-                int* img_bounds_w = (int*)malloc(12 * sizeof(int));
-                int* ker_bounds_w = (int*)malloc(12 * sizeof(int));
+                int img_bounds_h[12];
+                int ker_bounds_h[12];
+                int img_bounds_w[12];
+                int ker_bounds_w[12];
                 get_bounds(img_bounds_h, ker_bounds_h, oh, wh, pad_h, stride[0], dilation[0], orig_ih, ih);
                 get_bounds(img_bounds_w, ker_bounds_w, ow, ww, pad_w, stride[1], dilation[1], orig_iw, iw);
                 for (static_var<int> r1 = 0; r1 < 6; r1 = r1 + 1) {
@@ -309,7 +309,7 @@ ImageT static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> weight_
                                                     counter = counter + 1;
                                                 }
                                             }
-                                        } else if (r1 == 2) {
+                                        } else if (r1 == 2) { // the kernel fits column-wise
                                             for (dyn_var<int> i = 0; i < wh; i = i + 1) {
                                                 dyn_var<int> im_i = h_stride + i * dilation[0];
                                                 for (dyn_var<int> j = 0; j < ww; j = j + 1) {
@@ -324,7 +324,7 @@ ImageT static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> weight_
                                                     else break;
                                                 }
                                             }
-                                        } else if (r2 == 2) {
+                                        } else if (r2 == 2) { // the kernel fits row-wise
                                             for (dyn_var<int> i = 0; i < wh; i = i + 1) {
                                                 dyn_var<int> im_i = h_stride + i * dilation[0];
                                                 if (im_i < pad_h) {
@@ -340,7 +340,7 @@ ImageT static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> weight_
                                                     }
                                                 } else break;
                                             }
-                                        } else {
+                                        } else { // corner cases
                                             for (dyn_var<int> i = 0; i < wh; i = i + 1) {
                                                 dyn_var<int> im_i = h_stride + i * dilation[0];
                                                 if (im_i < pad_h) {
@@ -363,10 +363,6 @@ ImageT static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> weight_
                                     }
                                 }
                             }
-                            free(img_bounds_h);
-                            free(img_bounds_w);
-                            free(ker_bounds_h);
-                            free(ker_bounds_w);
                         }
                     }
                 }

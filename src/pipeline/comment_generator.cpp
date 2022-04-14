@@ -21,21 +21,15 @@ void commented_code_generator::visit(for_stmt::Ptr a) {
         curr_annotation = a->annotation;
         a->annotation = "";
     }
+    int pragma_idx = curr_annotation.find("#pragma");
+    int comment_idx = curr_annotation.find("Comment: ");
     // insert code based on the current annotation
-    if (curr_annotation.find("Comment:") != std::string::npos) {
-        oss << "// " << (curr_annotation).substr(9) << std::endl;
+    if (comment_idx != -1) {
+        oss << "// " << (curr_annotation).substr(comment_idx + 9) << std::endl;
         printer::indent(oss, curr_indent);
         commented_code_generator::visit(a);
-    } else if (curr_annotation.find("parallel block") != std::string::npos) {
-        oss << "#pragma omp parallel" << std::endl;
-        printer::indent(oss, curr_indent);
-        oss << "{" << std::endl;
-        printer::indent(oss, curr_indent);
-        commented_code_generator::visit(a);
-        oss << std::endl;
-        oss << "}" << std::endl;
-    } else if (curr_annotation.find("parallel for") != std::string::npos) {
-        oss << "#pragma " << curr_annotation << std::endl;
+    } else if (pragma_idx != -1) {
+        oss << curr_annotation.substr(pragma_idx) << std::endl;
         printer::indent(oss, curr_indent);
         commented_code_generator::visit(a);
     } else  {
