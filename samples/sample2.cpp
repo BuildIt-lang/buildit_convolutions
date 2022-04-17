@@ -46,7 +46,7 @@ int main() {
     int in_channels[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 10, 5, 5, 5};
     int out_channels[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 10, 10, 1, 3};
     for (int i = 0; i < num_tests; i ++) {
-        auto ast = builder::builder_context().extract_function_ast(static_conv2d_large_padding, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i]);
+        auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_tiled_loops, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i]);
         block::eliminate_redundant_vars(ast);
         pipeline::commented_code_generator::generate_code(ast, code_file, 0);
         code_file << "\n" << std::endl;

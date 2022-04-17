@@ -160,6 +160,15 @@ ImageT<int> static_conv2d(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int
     return output;
 }
 
+/**
+ * Splits the image row/column ranges into 6 regions based on the location of the kernel.
+ * Region 0: the kernel is completely in the left/upper padded area
+ * Region 1: the kernel intersects only the left/upper border between the padded area and the original image
+ * Region 2: completely inside the original image
+ * Region 3: intersects only the right/lower border
+ * Region 4: intersects both the left/upper and the right/lower border
+ * Region 5: completely inside the right/lower padded area
+ */
 
 void get_bounds(int* img_bounds, int* ker_bounds, int out_size, int ker_size, int pad, int stride, int dilation, int orig_size, int im_size) {
     static_var<int> curr = -1;
@@ -179,8 +188,6 @@ void get_bounds(int* img_bounds, int* ker_bounds, int out_size, int ker_size, in
             if (curr != 0) {
                 curr = 0;
                 img_bounds[curr * 2] = 0;
-                // ker_bounds[curr * 2] = -1;
-                // ker_bounds[curr * 2 + 1] = -2;
             }
         } else if (im_idx_lo < pad && im_idx_hi < orig_size + pad) { // intersecting left border 1
             if (curr != 1) {
@@ -219,15 +226,85 @@ void get_bounds(int* img_bounds, int* ker_bounds, int out_size, int ker_size, in
                 if (curr != -1) img_bounds[curr * 2 + 1] = h;
                 curr = 5;
                 img_bounds[curr * 2] = h;
-                // ker_bounds[curr * 2] = -1;
-                // ker_bounds[curr * 2 + 1] = -2; // the kernel doesn't fit at all
             }
         } 
     }
     if (curr != -1) img_bounds[curr * 2 + 1] = out_size;
 }
 
-ImageT<int> static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
+/**
+ * Computes an output image value for a specific index.
+ */
+void update_output(dyn_var<int*> input_data, dyn_var<int*> weight_data, dyn_var<int*> output_data, dyn_var<int> out_idx,
+            dyn_var<int> im_i, dyn_var<int> im_j, dyn_var<int> inner_img_idx, dyn_var<int> inner_ker_idx, dyn_var<int> i, dyn_var<int> j,
+            int orig_iw, int ww, int pad_h, int pad_w) {
+    dyn_var<int> img_val = input_data[inner_img_idx + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
+    dyn_var<int> weight_idx = inner_ker_idx + i * ww + j;
+    output_data[out_idx] = output_data[out_idx] + img_val * weight_data[weight_idx];
+}
+
+/**
+ * Loops over kernel columns.
+ */
+dyn_var<int> kernel_w_loop(dyn_var<int*> input_data, dyn_var<int*> weight_data, dyn_var<int*> output_data, dyn_var<int> w_stride, 
+    dyn_var<int> out_idx, dyn_var<int> im_i, dyn_var<int> inner_img_idx, dyn_var<int> inner_ker_idx, int ww, 
+    dyn_var<int> i, int orig_iw, int pad_h, int pad_w, int dil, bool h_condition) {
+    dyn_var<int> counter = 0;
+    builder::annotate("Comment: looping over kernel columns");
+    for (dyn_var<int> j = 0; j < ww; j = j + 1) {
+        dyn_var<int> im_j = w_stride + j * dil;
+        if (h_condition) {
+            if (im_j < pad_w) continue;
+            else if (im_j < orig_iw + pad_w) {
+                update_output(input_data, weight_data, output_data, out_idx,
+                    im_i, im_j, inner_img_idx, inner_ker_idx, i, j, orig_iw, ww, pad_h, pad_w);
+                counter = counter + 1;
+                
+            }
+            else break;
+        } else {
+            update_output(input_data, weight_data, output_data, out_idx,
+                im_i, im_j, inner_img_idx, inner_ker_idx, i, j, orig_iw, ww, pad_h, pad_w);
+            counter = counter + 1;
+        }
+    }
+    return counter;
+}
+
+/**
+ * Loops over the kernel.
+ * There are if conditions when the kernel intersects
+ * the border between the padded area and the original image.
+ */
+dyn_var<int> kernel_loops(dyn_var<int*> input_data, dyn_var<int*> weight_data, dyn_var<int*> output_data,
+            dyn_var<int> h, dyn_var<int> w, dyn_var<int> w_stride, dyn_var<int> h_stride, dyn_var<int> out_idx, 
+            dyn_var<int> inner_img_idx, dyn_var<int> inner_ker_idx, int ww, int wh,
+            int* dilation, int pad_h, int pad_w,
+            int orig_ih, int orig_iw, int in_channels, int out_channels, bool w_condition, bool h_condition) {
+    dyn_var<int> counter = 0;
+    builder::annotate("Comment: looping over kernel rows");
+    for (dyn_var<int> i = 0; i < wh; i = i + 1) {
+        dyn_var<int> im_i = h_stride + i * dilation[0];
+        if (w_condition) {
+            if (im_i < pad_h) {
+                continue;
+            } else if (im_i < orig_ih + pad_h) {
+                counter = counter + kernel_w_loop(input_data, weight_data, output_data, w_stride, out_idx, im_i, inner_img_idx, inner_ker_idx, ww, 
+                    i, orig_iw, pad_h, pad_w, dilation[1], h_condition);
+            } else break;
+        } else {
+            counter = counter + kernel_w_loop(input_data, weight_data, output_data, w_stride, out_idx, im_i, inner_img_idx, inner_ker_idx, ww, 
+                i, orig_iw, pad_h, pad_w, dilation[1], h_condition);
+        }
+    }
+    return counter;
+}
+
+/**
+ * Same as static_conv2d but splits the image loops based on
+ * kernel location. Currently works only for padding value 0.
+ */
+ImageT<int> static_conv2d_with_tiled_loops(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
                     int* padding, int padding_same) {
 
@@ -278,6 +355,9 @@ ImageT<int> static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> we
                 dyn_var<int> weight_idx;
                 dyn_var<int> counter = 0;
 
+                dyn_var<int> inner_img_idx = bid * orig_inch_h_w + in_ch * orig_h_w;
+                dyn_var<int> inner_ker_idx = out_ch * ker_inch_w_h + in_ch * ker_w_h;
+
                 int img_bounds_h[12];
                 int ker_bounds_h[12];
                 int img_bounds_w[12];
@@ -298,68 +378,11 @@ ImageT<int> static_conv2d_large_padding(dyn_var<int*> inp_data, dyn_var<int*> we
                                         out_idx =  bid * inch_oh_ow + out_ch * oh_times_ow + h * output.width + w;
                                         dyn_var<int> w_stride = w * stride[1];
                                         dyn_var<int> h_stride = h * stride[0];
-                                        if (r1 == 2 && r2 == 2) { // the kernel completely fits inside the orig image
-                                            for (dyn_var<int> i = 0; i < wh; i = i + 1) {
-                                                dyn_var<int> im_i = h_stride + i * dilation[0];
-                                                for (dyn_var<int> j = 0; j < ww; j = j + 1) {
-                                                    dyn_var<int> im_j = w_stride + j * dilation[1];
-                                                    dyn_var<int> img_val = inp_data[bid * orig_inch_h_w + in_ch * orig_h_w + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
-                                                    weight_idx = out_ch * ker_inch_w_h + in_ch * ker_w_h + i * ww + j;
-                                                    output.data[out_idx] = output.data[out_idx] + img_val * weight_data[weight_idx];
-                                                    counter = counter + 1;
-                                                }
-                                            }
-                                        } else if (r1 == 2) { // the kernel fits column-wise
-                                            for (dyn_var<int> i = 0; i < wh; i = i + 1) {
-                                                dyn_var<int> im_i = h_stride + i * dilation[0];
-                                                for (dyn_var<int> j = 0; j < ww; j = j + 1) {
-                                                    dyn_var<int> im_j = w_stride + j * dilation[1];
-                                                    if (im_j < pad_w) continue;
-                                                    else if (im_j < orig_iw + pad_w) {
-                                                        dyn_var<int> img_val = inp_data[bid * orig_inch_h_w + in_ch * orig_h_w + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
-                                                        weight_idx = out_ch * ker_inch_w_h + in_ch * ker_w_h + i * ww + j;
-                                                        output.data[out_idx] = output.data[out_idx] + img_val * weight_data[weight_idx];
-                                                        counter = counter + 1;
-                                                    }
-                                                    else break;
-                                                }
-                                            }
-                                        } else if (r2 == 2) { // the kernel fits row-wise
-                                            for (dyn_var<int> i = 0; i < wh; i = i + 1) {
-                                                dyn_var<int> im_i = h_stride + i * dilation[0];
-                                                if (im_i < pad_h) {
-                                                    continue;
-                                                } else if (im_i < orig_ih + pad_h) {
-                                                    for (dyn_var<int> j = 0; j < ww; j = j + 1) {
-                                                        dyn_var<int> im_j = w_stride + j * dilation[1];
-                                                        dyn_var<int> img_val = inp_data[bid * orig_inch_h_w + in_ch * orig_h_w + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
-                                                        weight_idx = out_ch * ker_inch_w_h + in_ch * ker_w_h + i * ww + j;
-                                                        output.data[out_idx] = output.data[out_idx] + img_val * weight_data[weight_idx];
-                                                        counter = counter + 1;
-                                                        
-                                                    }
-                                                } else break;
-                                            }
-                                        } else { // corner cases
-                                            for (dyn_var<int> i = 0; i < wh; i = i + 1) {
-                                                dyn_var<int> im_i = h_stride + i * dilation[0];
-                                                if (im_i < pad_h) {
-                                                    continue;
-                                                } else if (im_i < orig_ih + pad_h) {
-                                                    for (dyn_var<int> j = 0; j < ww; j = j + 1) {
-                                                        dyn_var<int> im_j = w_stride + j * dilation[1];
-                                                        if (im_j < pad_w) continue;
-                                                        else if (im_j < orig_iw + pad_w) {
-                                                            dyn_var<int> img_val = inp_data[bid * orig_inch_h_w + in_ch * orig_h_w + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
-                                                            weight_idx = out_ch * ker_inch_w_h + in_ch * ker_w_h + i * ww + j;
-                                                            output.data[out_idx] = output.data[out_idx] + img_val * weight_data[weight_idx];
-                                                            counter = counter + 1;
-                                                        }
-                                                        else break;
-                                                    }
-                                                } else break;
-                                            }
-                                        }
+                                        // if region = 2 the dilated kernel completely fits inside the orig image
+                                        bool w_conditions = r1 != 2;
+                                        bool h_conditions = r2 != 2;
+                                        counter = counter + kernel_loops(inp_data, weight_data, output.data, h, w, w_stride, h_stride, out_idx, inner_img_idx, inner_ker_idx, ww, wh,
+                                                        dilation, pad_h, pad_w, orig_ih, orig_iw, in_channels, out_channels, w_conditions, h_conditions);
                                     }
                                 }
                             }
