@@ -1,7 +1,7 @@
 #include <iostream>
 #include <chrono>
 #include <torch/torch.h>
-#include "buildit_conv2d.h"
+#include "runtime_types.h"
 #include "runtime_functions.h"
 #include <assert.h>
 
@@ -11,9 +11,6 @@
 #include "conv_functions/conv2d.h"
 #include "pipeline/conv.h"
 #include "pipeline/comment_generator.h"
-
-#include "specialized_timing_code.h"
-
 
 using namespace torch;
 using namespace std::chrono;
@@ -92,23 +89,14 @@ void time_specialized_conv2d(int iw, int ih, int ww, int wh, int b_sz, int in_ch
     }
     float specialized_conv_time = conv_runtime::stop_timer() / n_iters;
     
-    conv_runtime::ImageT<conv_t> conv_input = {.batch_size = b_sz, .in_channels = in_ch, .width = iw, .height = ih, .data = torch_input.data_ptr<conv_t>()};
-    conv_runtime::KernelT<conv_t> conv_weight = {.out_channels = out_ch, .in_channels = in_ch, .width = ww, .height = wh, .data = torch_weight.data_ptr<conv_t>()};
-    conv_runtime::ConvOptions conv_options = {.stride = stride, .padding = padding, .dilation = dilation, .groups = 1};
-    conv_runtime::start_timer();
-    // for (int iter = 0; iter < n_iters; iter++) {
-        // conv_runtime::ImageT<int> gen_conv_output = buildit_conv2d(conv_input, conv_weight, conv_options);
-    // }
-    float general_conv_time = conv_runtime::stop_timer() / n_iters;
-    
     // std::cout << torch_output << std::endl;
-    // conv_output_final.print();
+    // spec_conv_output.print();
     std::cout << "torch_time: " << torch_time << "ms, specialized_conv_time: " << specialized_conv_time << "ms" << ", multiplications: " << spec_conv_output.mult_cnt << std::endl;
     compare(torch_output, spec_conv_output, test_name, "specialized");
 }
 
 void run() {
-    int n_runs = 9;
+    int n_runs = 8;
     int iw[] = {100, 100, 200, 200, 300, 300, 200, 200, 100};
     int ih[] = {100, 100, 200, 200, 300, 300, 200, 200, 100};
     int kw[] = {10, 10, 10, 10, 10, 10, 10, 10, 20};
@@ -121,12 +109,17 @@ void run() {
     int dilation[][2] = {{1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {10, 10}};
     int padding_same[] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
     std::string func_names[] = {"f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9"};
-    GeneratedFunction functions[] = {&f1, &f2, &f3, &f4, &f5, &f6, &f7, &f8, &f9};
-
-    for (int i = 6; i < n_runs; i++) {
-        time_specialized_conv2d(iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], functions[i], func_names[i]);
+    std::string flags = "";
+    for (int i = 0; i < n_runs; i++) {
+        auto fptr = (GeneratedFunction)pipeline::commented_code_generator::compile_function(
+            static_conv2d_with_tiled_loops, flags, iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], 
+            out_channels[i], stride[i], dilation[i], padding[i], padding_same[i]
+            );
+        time_specialized_conv2d(
+            iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], out_channels[i], 
+            stride[i], dilation[i], padding[i], padding_same[i], fptr, func_names[i]
+            );
     }
-
 }
 
 int main() {

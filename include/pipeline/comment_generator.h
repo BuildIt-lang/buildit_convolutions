@@ -4,6 +4,7 @@
 #include <string.h>
 #include <cstdio>
 #include <fstream>
+#include <sstream>
 #include <unistd.h>
 #include <dlfcn.h>
 
@@ -25,7 +26,7 @@ public:
 	}
 
 	template <typename FT, typename...ArgsT>
-	static void* compile_function(FT f, ArgsT...args) {
+	static void* compile_function(FT f, std::string flags, ArgsT...args) {
 		builder::builder_context context;	
 		// Currently we will use an unconfigured context
 		// Can take in extra parameters or a context object
@@ -42,17 +43,17 @@ public:
 		close(fd);
 
 		std::string base_name(base_name_c);	
-		std::string source_name = base_name + ".c";
+		std::string source_name = base_name + ".cpp";
 		std::string compiled_name = base_name + ".so";
 		
 		std::string compiler_name = COMPILER_PATH;
-		std::string compile_command = compiler_name + " -shared -O3 " + source_name + " -o " + compiled_name;
+		std::string compile_command = compiler_name + " -shared -O3 " + flags + " " + source_name + " -o " + compiled_name + " -I" + INCLUDES;
 		
-			
-		std::ofstream oss(source_name);	
-
+		std::ofstream oss(source_name);
+		oss << "#include \"runtime_functions.h\"\n#include \"runtime_types.h\"" << std::endl;
+		oss << "extern \"C\" {" << std::endl;
 		generate_code(ast, oss, 0);
-
+		oss << std::endl << "}" << std::endl;
 		oss.close();
 
 		int err = system(compile_command.c_str());

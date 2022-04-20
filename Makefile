@@ -3,6 +3,7 @@ SRC_DIR=$(BASE_DIR)/src
 BUILD_DIR?=$(BASE_DIR)/build
 BUILDIT_DIR?=$(BASE_DIR)/buildit
 INCLUDE_DIR=$(BASE_DIR)/include
+RUNTIME_DIR=$(BASE_DIR)/runtime
 
 SAMPLES_DIR=$(BASE_DIR)/samples
 
@@ -53,7 +54,8 @@ subsystem:
 $(BUILD_DIR)/gen_headers/gen/compiler_headers.h:
 	echo "#pragma once" > $@
 	echo "#define GEN_TEMPLATE_NAME \"$(BASE_DIR)/scratch/code_XXXXXX\"" >> $@
-	echo "#define COMPILER_PATH \"$(CC)\"" >> $@
+	echo "#define COMPILER_PATH \"$(CXX)\"" >> $@
+	echo "#define INCLUDES \"$(RUNTIME_DIR)\"" >> $@
 
 $(BUILD_DIR)/samples/%.o: $(SAMPLES_DIR)/%.cpp $(INCLUDES)
 	$(CXX) $(CFLAGS) $< -o $@ $(INCLUDE_FLAG) -c 

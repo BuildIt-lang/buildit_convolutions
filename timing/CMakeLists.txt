@@ -11,5 +11,5 @@ set(SOURCES "experiments.cpp")
 
 add_executable(conv_performance ${SOURCES})
 target_link_libraries(conv_performance "${TORCH_LIBRARIES}" libbuildit libconv)
-target_include_directories(conv_performance PUBLIC "../build/gen_headers/" "../runtime" "../generated_code" "../samples" "../buildit/include" "../include")
+target_include_directories(conv_performance PUBLIC "../build/gen_headers/" "../runtime" "../samples" "../buildit/include" "../include")
 set_property(TARGET conv_performance PROPERTY CXX_STANDARD 14)
