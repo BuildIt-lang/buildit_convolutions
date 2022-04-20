@@ -6,13 +6,13 @@
 #include <sys/time.h>
 
 namespace conv_runtime {
-    int* conv_malloc(int size) {
-        return (int*) malloc(size);
+    float* conv_malloc(int size) {
+        return (float*) malloc(size);
     }
-    int* conv_calloc(int num, int size) {
-        return (int*) calloc(num, size);
+    float* conv_calloc(int num, int size) {
+        return (float*) calloc(num, size);
     }
-    void conv_free(int* ptr) {
+    void conv_free(float* ptr) {
         free(ptr);
     }
 

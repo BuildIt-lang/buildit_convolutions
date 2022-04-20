@@ -13,7 +13,7 @@ using conv::ImageT;
 using conv::KernelT; 
 
 
-ImageT<int> dyn_conv2d(ImageT<int> input, KernelT weight, ConvOptions opt) {
+ImageT<conv_t> dyn_conv2d(ImageT<conv_t> input, KernelT<conv_t> weight, ConvOptions opt) {
 
     conv::runtime::conv_assert(input.in_channels == weight.in_channels);
     conv::runtime::conv_assert(weight.height <= input.height);
@@ -37,13 +37,13 @@ ImageT<int> dyn_conv2d(ImageT<int> input, KernelT weight, ConvOptions opt) {
         iw = input.width + 2 * pad_w;
     }
 
-    ImageT<int> output;
+    ImageT<conv_t> output;
     output.height = (ih - opt.dilation[0] * (weight.height - 1) - 1) / opt.stride[0] + 1;
     output.width = (iw - opt.dilation[1] * (weight.width - 1) - 1) / opt.stride[1] + 1;
     output.in_channels = weight.out_channels;
     output.batch_size = input.batch_size;
     dyn_var<int> size = output.width * output.height * output.batch_size * output.in_channels;
-    output.data = conv::runtime::conv_calloc(size, (int)sizeof(int));
+    output.data = conv::runtime::conv_calloc(size, (int)sizeof(conv_t));
     dyn_var<int> out_idx;
     dyn_var<int> in_idx;
     dyn_var<int> weight_idx;
@@ -83,7 +83,7 @@ ImageT<int> dyn_conv2d(ImageT<int> input, KernelT weight, ConvOptions opt) {
     return output;
 }
 
-ImageT<int> static_conv2d(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
+ImageT<conv_t> static_conv2d(dyn_var<conv_t*> inp_data, dyn_var<conv_t*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
                     int* padding, int padding_same) {
 
@@ -110,13 +110,13 @@ ImageT<int> static_conv2d(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int
     static_var<int> oh = (ih - dilation[0] * (wh - 1) - 1) / stride[0] + 1;
     static_var<int> ow = (iw - dilation[1] * (ww - 1) - 1) / stride[1] + 1;
 
-    ImageT<int> output;
+    ImageT<conv_t> output;
     output.height = oh;
     output.width = ow;
     output.in_channels = out_channels;
     output.batch_size = batch_size;
     static_var<int> size = ow * oh * batch_size * out_channels;
-    output.data = conv::runtime::conv_calloc(size, (int)sizeof(int));
+    output.data = conv::runtime::conv_calloc(size, (int)sizeof(conv_t));
     builder::annotate("Comment: looping over batches | omp parallel for collapse(3)");
     for (dyn_var<int> bid = 0; bid < batch_size; bid = bid + 1) {
         builder::annotate("Comment: looping over out channels");
@@ -235,7 +235,7 @@ void get_bounds(int* img_bounds, int* ker_bounds, int out_size, int ker_size, in
 /**
  * Computes an output image value for a specific index.
  */
-void update_output(dyn_var<int*> input_data, dyn_var<int*> weight_data, dyn_var<int*> output_data, dyn_var<int> out_idx,
+void update_output(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, dyn_var<int> out_idx,
             dyn_var<int> im_i, dyn_var<int> im_j, dyn_var<int> inner_img_idx, dyn_var<int> inner_ker_idx, dyn_var<int> i, dyn_var<int> j,
             int orig_iw, int ww, int pad_h, int pad_w) {
     dyn_var<int> img_val = input_data[inner_img_idx + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
@@ -246,7 +246,7 @@ void update_output(dyn_var<int*> input_data, dyn_var<int*> weight_data, dyn_var<
 /**
  * Loops over kernel columns.
  */
-dyn_var<int> kernel_w_loop(dyn_var<int*> input_data, dyn_var<int*> weight_data, dyn_var<int*> output_data, dyn_var<int> w_stride, 
+dyn_var<int> kernel_w_loop(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, dyn_var<int> w_stride, 
     dyn_var<int> out_idx, dyn_var<int> im_i, dyn_var<int> inner_img_idx, dyn_var<int> inner_ker_idx, int ww, 
     dyn_var<int> i, int orig_iw, int pad_h, int pad_w, int dil, bool h_condition) {
     dyn_var<int> counter = 0;
@@ -276,7 +276,7 @@ dyn_var<int> kernel_w_loop(dyn_var<int*> input_data, dyn_var<int*> weight_data, 
  * There are if conditions when the kernel intersects
  * the border between the padded area and the original image.
  */
-dyn_var<int> kernel_loops(dyn_var<int*> input_data, dyn_var<int*> weight_data, dyn_var<int*> output_data,
+dyn_var<int> kernel_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data,
             dyn_var<int> h, dyn_var<int> w, dyn_var<int> w_stride, dyn_var<int> h_stride, dyn_var<int> out_idx, 
             dyn_var<int> inner_img_idx, dyn_var<int> inner_ker_idx, int ww, int wh,
             int* dilation, int pad_h, int pad_w,
@@ -304,7 +304,7 @@ dyn_var<int> kernel_loops(dyn_var<int*> input_data, dyn_var<int*> weight_data, d
  * Same as static_conv2d but splits the image loops based on
  * kernel location. Currently works only for padding value 0.
  */
-ImageT<int> static_conv2d_with_tiled_loops(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
+ImageT<conv_t> static_conv2d_with_tiled_loops(dyn_var<conv_t*> inp_data, dyn_var<conv_t*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
                     int* padding, int padding_same) {
 
@@ -338,13 +338,13 @@ ImageT<int> static_conv2d_with_tiled_loops(dyn_var<int*> inp_data, dyn_var<int*>
     static_var<int> ker_w_h = ww * wh;
     static_var<int> ker_inch_w_h = in_channels * ker_w_h;
 
-    ImageT<int> output;
+    ImageT<conv_t> output;
     output.height = oh;
     output.width = ow;
     output.in_channels = out_channels;
     output.batch_size = batch_size;
     static_var<int> size = ow * oh * batch_size * out_channels;
-    output.data = conv::runtime::conv_calloc(size, (int)sizeof(int));
+    output.data = conv::runtime::conv_calloc(size, (int)sizeof(conv_t));
     builder::annotate("Comment: looping over batches | #pragma omp parallel for collapse(3)");
     for (dyn_var<int> bid = 0; bid < batch_size; bid = bid + 1) {
         builder::annotate("Comment: looping over out channels");

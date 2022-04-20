@@ -13,6 +13,8 @@ using conv_runtime::ImageT;
 using conv_runtime::KernelT;
 namespace F = nn::functional;
 
+typedef float conv_t;
+
 int default_padding[] = {0, 0};
 int default_stride[] = {1, 1};
 int default_dilation[] = {1, 1};
@@ -21,7 +23,7 @@ int default_batch_sz = 1;
 int default_in_channels = 1;
 int default_out_channels = 1;
 
-void compare(Tensor expected, ImageT<int> result, string test_name, string test_details) {
+void compare(Tensor expected, ImageT<conv_t> result, string test_name, string test_details) {
     std::cout << "Running test: " << test_name << " " << test_details;
     assert(result.batch_size == expected.size(0));
     assert(result.in_channels == expected.size(1));
@@ -29,10 +31,15 @@ void compare(Tensor expected, ImageT<int> result, string test_name, string test_
     assert (result.width == expected.size(3));
     int w = result.width;
     int h = result.height;
-    float* expected_arr = expected.data_ptr<float>();
+    conv_t* expected_arr = expected.data_ptr<conv_t>();
     for (int i = 0; i < h; i++) {
         for (int j = 0; j < w; j++) {
-            assert(result.data[i*w+j] == expected_arr[i*w+j]);
+            float diff = std::abs(result.data[i*w+j] - expected_arr[i*w+j]);
+            float threshold = 0.05 * expected_arr[i*w+j];
+            if (diff > threshold) {
+                std::cout << "expected: " << expected_arr[i*w+j] << ", got: " << result.data[i*w+j] << std::endl;
+            }
+            assert(diff <= threshold);
         }
     }
     std::cout << ": PASSED" << std::endl;
@@ -52,29 +59,29 @@ void test_conv2d(int iw, int ih, int ww, int wh, int batch_size, int in_channels
     int64_t lo = 0;
     int64_t hi = 100;
     // generate image and kernel
-    Tensor torch_input = torch::randint(lo, hi, {batch_size, in_channels, ih, iw}).to(torch::kFloat); // using float here because dilation doesn't work with int
-    Tensor torch_weight = torch::randint(lo, hi, {out_channels, in_channels/conv_options.groups, wh, ww}).to(torch::kFloat);
+    Tensor torch_input = torch::randint(lo, hi, {batch_size, in_channels, ih, iw}).to(torch::kFloat32); // using float here because dilation doesn't work with int
+    Tensor torch_weight = torch::randint(lo, hi, {out_channels, in_channels/conv_options.groups, wh, ww}).to(torch::kFloat32);
     // std::cout << torch_input << std::endl;
     // std::cout << torch_weight << std::endl;
     // // get expected output
     Tensor torch_output = F::conv2d(torch_input, torch_weight, torch_options);
     // std::cout << torch_output << std::endl;
     // get actual output
-    Tensor torch_inp = torch_input.to(torch::kInt32);
-    Tensor torch_kernel = torch_weight.to(torch::kInt32);
-    ImageT<int> conv_input = {.batch_size = batch_size, .in_channels = in_channels, .width = iw, .height = ih, .data = torch_inp.data_ptr<int>()};
-    KernelT<int> conv_weight = {.out_channels = out_channels, .in_channels = in_channels, .width = ww, .height = wh, .data = torch_kernel.data_ptr<int>()};
-    ImageT<int> conv_output = buildit_conv2d(conv_input, conv_weight, conv_options);
+    // Tensor torch_inp = torch_input.to(torch::kInt32);
+    // Tensor torch_kernel = torch_weight.to(torch::kInt32);
+    ImageT<conv_t> conv_input = {.batch_size = batch_size, .in_channels = in_channels, .width = iw, .height = ih, .data = torch_input.data_ptr<conv_t>()};
+    KernelT<conv_t> conv_weight = {.out_channels = out_channels, .in_channels = in_channels, .width = ww, .height = wh, .data = torch_weight.data_ptr<conv_t>()};
+    ImageT<conv_t> conv_output = buildit_conv2d(conv_input, conv_weight, conv_options);
     // conv_output.print();
     compare(torch_output, conv_output, test_name, test_details);
 }
 
 // testing specialized conv2d
-void test_static_conv2d(TestOptions opt, ImageT<int> (*func)(int*, int*), string test_name) {
+void test_static_conv2d(TestOptions opt, ImageT<conv_t> (*func)(conv_t*, conv_t*), string test_name) {
     int64_t lo = 0;
     int64_t hi = 100;
-    Tensor torch_input = torch::randint(lo, hi, {opt.batch_size, opt.in_channels, opt.ih, opt.iw}).to(torch::kFloat); // using float here because dilation doesn't work with int in torch
-    Tensor torch_weight = torch::randint(lo, hi, {opt.out_channels, opt.in_channels/default_groups, opt.wh, opt.ww}).to(torch::kFloat);
+    Tensor torch_input = torch::randint(lo, hi, {opt.batch_size, opt.in_channels, opt.ih, opt.iw}).to(torch::kFloat32); // using float here because dilation doesn't work with int in torch
+    Tensor torch_weight = torch::randint(lo, hi, {opt.out_channels, opt.in_channels/default_groups, opt.wh, opt.ww}).to(torch::kFloat32);
     // covert options to torch arrays
     F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
     ExpandingArray<2> torch_stride = convert_to_expanding_array(opt.stride);
@@ -90,13 +97,13 @@ void test_static_conv2d(TestOptions opt, ImageT<int> (*func)(int*, int*), string
     Tensor torch_output = F::conv2d(torch_input, torch_weight, torch_options);
     // std::cout << torch_output << std::endl;
     // get actual output
-    Tensor torch_inp = torch_input.to(torch::kInt32);
-    Tensor torch_kernel = torch_weight.to(torch::kInt32);
-    int* inp_data = torch_inp.data_ptr<int>();
-    int* kernel_data = torch_kernel.data_ptr<int>();
-    ImageT<int> conv_output = func(inp_data, kernel_data);
+    // Tensor torch_inp = torch_input.to(torch::kInt32);
+    // Tensor torch_kernel = torch_weight.to(torch::kInt32);
+    conv_t* inp_data = torch_input.data_ptr<conv_t>();
+    conv_t* kernel_data = torch_weight.data_ptr<conv_t>();
+    ImageT<conv_t> conv_output = func(inp_data, kernel_data);
     // conv_output.print();
-    std::cout << conv_output.mult_cnt << std::endl;
+    // std::cout << conv_output.mult_cnt << std::endl;
     compare(torch_output, conv_output, test_name, "");
 }
 

@@ -20,7 +20,7 @@ extern const char padding_t_name[sizeof(PADDING_T_NAME)];
 #define IMAGE_T_NAME "conv_runtime::ImageT"
 extern const char image_t_name[sizeof(IMAGE_T_NAME)];
 
-#define KERNEL_T_NAME "conv_runtime::KernelT<int>"
+#define KERNEL_T_NAME "conv_runtime::KernelT"
 extern const char kernel_t_name[sizeof(KERNEL_T_NAME)];
 
 
@@ -63,10 +63,10 @@ struct ImageT: public dyn_var<builder::name<image_t_name, T>> {
     dyn_var<int> mult_cnt = as_member_of(this, "mult_cnt");
 };
 
-struct KernelT: public dyn_var<builder::name<kernel_t_name>> {
-    typedef dyn_var<builder::name<kernel_t_name>> super;
-    using super_name = builder::name<kernel_t_name>;
-    using super::dyn_var;
+template <typename T>
+struct KernelT: public dyn_var<builder::name<kernel_t_name, T>> {
+    typedef dyn_var<builder::name<kernel_t_name, T>> super;
+    using super::super;
     using super::operator=;
     KernelT(const KernelT &t): super((builder::builder)t) {}
     builder::builder operator= (const KernelT &t) {
@@ -77,7 +77,7 @@ struct KernelT: public dyn_var<builder::name<kernel_t_name>> {
     dyn_var<int> out_channels = as_member_of(this, "out_channels");
     dyn_var<int> width = as_member_of(this, "width");
     dyn_var<int> height = as_member_of(this, "height");
-    dyn_var<int*> data = as_member_of(this, "data");
+    dyn_var<T*> data = as_member_of(this, "data");
     dyn_var<void(void)> print = as_member_of(this, "print");
 };
 

@@ -3,7 +3,7 @@
 
 #include <assert.h>
 
-conv_runtime::ImageT<int> buildit_conv2d (conv_runtime::ImageT<int> arg0, conv_runtime::KernelT<int> arg1, conv_runtime::ConvOptions arg2) {
+conv_runtime::ImageT<float> buildit_conv2d (conv_runtime::ImageT<float> arg0, conv_runtime::KernelT<float> arg1, conv_runtime::ConvOptions arg2) {
   assert(arg0.in_channels == arg1.in_channels);
   assert(arg1.height <= arg0.height);
   assert(arg1.width <= arg0.width);
@@ -21,7 +21,7 @@ conv_runtime::ImageT<int> buildit_conv2d (conv_runtime::ImageT<int> arg0, conv_r
     var5 = arg0.height + (2 * var3);
     var6 = arg0.width + (2 * var4);
   }
-  conv_runtime::ImageT<int> var7;
+  conv_runtime::ImageT<float> var7;
   var7.height = (((var5 - (arg2.dilation[0] * (arg1.height - 1))) - 1) / arg2.stride[0]) + 1;
   var7.width = (((var6 - (arg2.dilation[1] * (arg1.width - 1))) - 1) / arg2.stride[1]) + 1;
   var7.in_channels = arg1.out_channels;
