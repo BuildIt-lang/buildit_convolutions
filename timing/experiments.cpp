@@ -11,6 +11,7 @@
 #include "conv_functions/conv2d.h"
 #include "pipeline/conv.h"
 #include "pipeline/comment_generator.h"
+#include "specialized_timing_code.h"
 
 using namespace torch;
 using namespace std::chrono;
@@ -96,30 +97,34 @@ void time_specialized_conv2d(int iw, int ih, int ww, int wh, int b_sz, int in_ch
 }
 
 void run() {
-    int n_runs = 8;
-    int iw[] = {100, 100, 200, 200, 300, 300, 200, 200, 100};
-    int ih[] = {100, 100, 200, 200, 300, 300, 200, 200, 100};
-    int kw[] = {10, 10, 10, 10, 10, 10, 10, 10, 20};
-    int kh[] = {10, 10, 10, 10, 10, 10, 10, 10, 20};
-    int batch_size[] = {10, 20, 10, 20, 10, 20, 10, 10, 10};
-    int in_channels[] = {10, 10, 10, 10, 10, 10, 10, 10, 10};
-    int out_channels[] = {10, 10, 10, 10, 10, 10, 10, 10, 10};
-    int stride[][2] = {{1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {5, 5}, {5, 5}};
-    int padding[][2] = {{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {10, 10}, {10, 10}, {10, 10}};
-    int dilation[][2] = {{1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {10, 10}};
-    int padding_same[] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-    std::string func_names[] = {"f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9"};
-    std::string flags = "";
-    for (int i = 0; i < n_runs; i++) {
-        auto fptr = (GeneratedFunction)pipeline::commented_code_generator::compile_function(
-            static_conv2d_with_tiled_loops, flags, iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], 
-            out_channels[i], stride[i], dilation[i], padding[i], padding_same[i]
-            );
-        time_specialized_conv2d(
-            iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], out_channels[i], 
-            stride[i], dilation[i], padding[i], padding_same[i], fptr, func_names[i]
-            );
+    int n_runs = 10;
+    int iw[] = {100, 100, 200, 200, 300, 300, 200, 200, 100, 128};
+    int ih[] = {100, 100, 200, 200, 300, 300, 200, 200, 100, 128};
+    int kw[] = {10, 10, 10, 10, 10, 10, 10, 10, 20, 5};
+    int kh[] = {10, 10, 10, 10, 10, 10, 10, 10, 20, 5};
+    int batch_size[] = {10, 20, 10, 20, 10, 20, 10, 10, 10, 10};
+    int in_channels[] = {10, 10, 10, 10, 10, 10, 10, 10, 10, 64};
+    int out_channels[] = {10, 10, 10, 10, 10, 10, 10, 10, 10, 32};
+    int stride[][2] = {{1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {5, 5}, {5, 5}, {1, 1}};
+    int padding[][2] = {{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {10, 10}, {10, 10}, {10, 10}, {0, 0}};
+    int dilation[][2] = {{1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {10, 10}, {1, 1}};
+    int padding_same[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    std::string func_names[] = {"f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10"};
+    GeneratedFunction functions[] = {&f1, &f2, &f3, &f4, &f5, &f6, &f7, &f8, &f9, &f10};
+    for (int i = 9; i < n_runs; i++) {
+        time_specialized_conv2d(iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], functions[i], func_names[i]);
     }
+    // std::string flags = "";
+    // for (int i = 0; i < n_runs; i++) {
+    //     auto fptr = (GeneratedFunction)pipeline::commented_code_generator::compile_function(
+    //         static_conv2d_with_tiled_loops, flags, iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], 
+    //         out_channels[i], stride[i], dilation[i], padding[i], padding_same[i]
+    //         );
+    //     time_specialized_conv2d(
+    //         iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], out_channels[i], 
+    //         stride[i], dilation[i], padding[i], padding_same[i], fptr, func_names[i]
+    //         );
+    // }
 }
 
 int main() {

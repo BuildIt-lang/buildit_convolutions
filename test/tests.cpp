@@ -5,6 +5,7 @@
 #include <assert.h>
 #include "pipeline/comment_generator.h"
 #include "conv_functions/conv2d.h"
+#include "specialized_test_code.h"
 
 using namespace torch;
 namespace F = nn::functional;
@@ -258,21 +259,24 @@ void test_static_all() {
     // default
     options = {.iw = 5, .ih = 5, .ww = 3, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
                                     .stride = default_stride, .padding_same = 0, .padding = default_padding, .dilation = default_dilation};
-    compile_and_run(options, "default_im5x5_w3x3");
+    // compile_and_run(options, "default_im5x5_w3x3");
+    test_static_conv2d(options, &conv2d_default_im5x5_w3x3, "default_im5x5_w3x3");
 
     // stride
     stride[0] = 2;
     stride[1] = 1;
     options = {.iw = 10, .ih = 8, .ww = 2, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
                                     .stride = stride, .padding_same = 0, .padding = default_padding, .dilation = default_dilation};
-    compile_and_run(options, "stride2x1_im8x10_w3x2");
+    // compile_and_run(options, "stride2x1_im8x10_w3x2");
+    test_static_conv2d(options, &conv2d_stride2x1_im8x10_w3x2, "stride2x1_im8x10_w3x2");
 
     // dilation
     dilation[0] = 3;
     dilation[1] = 2;
     options = {.iw = 15, .ih = 20, .ww = 2, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
                                     .stride = default_stride, .padding_same = 0, .padding = default_padding, .dilation = dilation};
-    compile_and_run(options, "dil3x2_im20x15_w3x2");
+    // compile_and_run(options, "dil3x2_im20x15_w3x2");
+    test_static_conv2d(options, &conv2d_dil3x2_im20x15_w3x2, "dil3x2_im20x15_w3x2");
 
     // stride and dilation
     dilation[0] = 3;
@@ -281,18 +285,23 @@ void test_static_all() {
     stride[1] = 3;
     options = {.iw = 15, .ih = 20, .ww = 2, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
                                     .stride = stride, .padding_same = 0, .padding = default_padding, .dilation = dilation};
-    compile_and_run(options, "stride2x3_dil3x2_im20x15_w3x2");
+    // compile_and_run(options, "stride2x3_dil3x2_im20x15_w3x2");
+    test_static_conv2d(options, &conv2d_stride2x3_dil3x2_im20x15_w3x2, "stride2x3_dil3x2_im20x15_w3x2");
 
     // padding arr
     padding[0] = 1;
     padding[1] = 2;
     options = {.iw = 5, .ih = 5, .ww = 2, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
                                     .stride = default_stride, .padding_same = 0, .padding = padding, .dilation = default_dilation};
-    compile_and_run(options, "pad1x2_im5x5_w3x2");
+    // compile_and_run(options, "pad1x2_im5x5_w3x2");
+    test_static_conv2d(options, &conv2d_pad1x2_im5x5_w3x2, "pad1x2_im5x5_w3x2");
+
     // padding same
     options = {.iw = 5, .ih = 5, .ww = 3, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
                                     .stride = default_stride, .padding_same = 1, .padding = default_padding, .dilation = default_dilation};
-    compile_and_run(options, "padsame_im5x5_w3x3");
+    // compile_and_run(options, "padsame_im5x5_w3x3");
+    test_static_conv2d(options, &conv2d_padsame_im5x5_w3x3, "padsame_im5x5_w3x3");
+
     // stride, dilation, padding arr
     dilation[0] = 3;
     dilation[1] = 2;
@@ -302,14 +311,16 @@ void test_static_all() {
     padding[1] = 4;
     options = {.iw = 15, .ih = 20, .ww = 2, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
                                     .stride = stride, .padding_same = 0, .padding = padding, .dilation = dilation};
-    compile_and_run(options, "dil3x2_stride2x3_pad3x4_im15x20_w3x2");
+    // compile_and_run(options, "dil3x2_stride2x3_pad3x4_im15x20_w3x2");
+    test_static_conv2d(options, &conv2d_dil3x2_stride2x3_pad3x4_im15x20_w3x2, "dil3x2_stride2x3_pad3x4_im15x20_w3x2");
 
     // dilation, padding same
     dilation[0] = 3;
     dilation[1] = 2;
     options = {.iw = 15, .ih = 20, .ww = 3, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
                                     .stride = default_stride, .padding_same = 1, .padding = default_padding, .dilation = dilation};
-    compile_and_run(options, "dil3x2_padsame_im15x20_w3x3");
+    // compile_and_run(options, "dil3x2_padsame_im15x20_w3x3");
+    test_static_conv2d(options, &conv2d_dil3x2_padsame_im15x20_w3x3, "dil3x2_padsame_im15x20_w3x3");
 
     // batching, stride, dilation, padding
     dilation[0] = 2;
@@ -320,7 +331,8 @@ void test_static_all() {
     padding[1] = 4;
     options = {.iw = 20, .ih = 20, .ww = 3, .wh = 3, .batch_size = 5, .in_channels = 1, .out_channels = 1, 
                                     .stride = stride, .padding_same = 0, .padding = padding, .dilation = dilation};
-    compile_and_run(options, "dil2x2_stride2x4_pad5x4_im20x20_w3x3_batch5");
+    // compile_and_run(options, "dil2x2_stride2x4_pad5x4_im20x20_w3x3_batch5");
+    test_static_conv2d(options, &conv2d_dil2x2_stride2x4_pad5x4_im20x20_w3x3_batch5, "dil2x2_stride2x4_pad5x4_im20x20_w3x3_batch5");
 
     // batching, stride, dilation, padding, in channels, out channels
     dilation[0] = 2;
@@ -331,22 +343,26 @@ void test_static_all() {
     padding[1] = 4;
     options = {.iw = 20, .ih = 20, .ww = 5, .wh = 5, .batch_size = 4, .in_channels = 3, .out_channels = 5, 
                                     .stride = stride, .padding_same = 0, .padding = padding, .dilation = dilation};
-    compile_and_run(options, "dil2x2_stride2x4_pad5x4_im20x20_w5x5_batch4_inch4_outch5");
+    // compile_and_run(options, "dil2x2_stride2x4_pad5x4_im20x20_w5x5_batch4_inch4_outch5");
+    test_static_conv2d(options, &conv2d_dil2x2_stride2x4_pad5x4_im20x20_w5x5_batch4_inch4_outch5, "dil2x2_stride2x4_pad5x4_im20x20_w5x5_batch4_inch4_outch5");
 
     // regression tests from timing
     options = {.iw = 100, .ih = 100, .ww = 10, .wh = 10, .batch_size = 10, .in_channels = 10, .out_channels = 10, 
                                     .stride = default_stride, .padding_same = 0, .padding = default_padding, .dilation = default_dilation};
-    compile_and_run(options, "im100x100_w10x10_batch10_inch10_outch10");
+    // compile_and_run(options, "im100x100_w10x10_batch10_inch10_outch10");
+    test_static_conv2d(options, &conv2d_im100x100_w10x10_batch10_inch10_outch10, "im100x100_w10x10_batch10_inch10_outch10");
 
     stride[0] = 4;
     stride[1] = 4;
     options = {.iw = 100, .ih = 100, .ww = 10, .wh = 10, .batch_size = 10, .in_channels = 5, .out_channels = 10, 
                                     .stride = stride, .padding_same = 0, .padding = default_padding, .dilation = default_dilation};
-    compile_and_run(options, "stride4x4_im100x100_w10x10_batch10_inch10_outch10");
+    // compile_and_run(options, "stride4x4_im100x100_w10x10_batch10_inch5_outch10");
+    test_static_conv2d(options, &conv2d_stride4x4_im100x100_w10x10_batch10_inch5_outch10, "stride4x4_im100x100_w10x10_batch10_inch5_outch10");
 
     options = {.iw = 10, .ih = 10, .ww = 5, .wh = 5, .batch_size = 10, .in_channels = 5, .out_channels = 1, 
                                     .stride = default_stride, .padding_same = 0, .padding = default_padding, .dilation = default_dilation};
-    compile_and_run(options, "im10x10_w5x5_batch10_inch5_outch1");
+    // compile_and_run(options, "im10x10_w5x5_batch10_inch5_outch1");
+    test_static_conv2d(options, &conv2d_im10x10_w5x5_batch10_inch5_outch1, "im10x10_w5x5_batch10_inch5_outch1");
 
     dilation[0] = 4;
     dilation[1] = 4;
@@ -354,7 +370,8 @@ void test_static_all() {
     padding[1] = 10;
     options = {.iw = 10, .ih = 10, .ww = 3, .wh = 3, .batch_size = 1, .in_channels = 5, .out_channels = 3, 
                                     .stride = default_stride, .padding_same = 0, .padding = padding, .dilation = dilation};
-    compile_and_run(options, "pad10x10_dil4x4_im10x10_w3x3_batch1_inch5_outch3");
+    // compile_and_run(options, "pad10x10_dil4x4_im10x10_w3x3_batch1_inch5_outch3");
+    test_static_conv2d(options, &conv2d_pad10x10_dil4x4_im10x10_w3x3_batch1_inch5_outch3, "pad10x10_dil4x4_im10x10_w3x3_batch1_inch5_outch3");
 }
 
 
