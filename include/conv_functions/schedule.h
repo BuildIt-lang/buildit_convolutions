@@ -9,6 +9,7 @@ struct LoopSchedule {
     bool unrolled = false;
     int bound;
     int parallel_collapse = 0;
+    bool after = false;
 
     enum class loop_type {
         N,   // batches

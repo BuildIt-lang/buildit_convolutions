@@ -56,7 +56,11 @@ int main() {
         LoopSchedule ix = LoopSchedule(LoopSchedule::loop_type::IW, iw[i]);
         LoopSchedule ky = LoopSchedule(LoopSchedule::loop_type::KH, wh[i]);
         LoopSchedule kx = LoopSchedule(LoopSchedule::loop_type::KW, ww[i]);
-        LoopSchedule all_loops[7] = {n, out_ch, in_ch, iy, ix, ky, kx};
+        ky.after = false;
+        kx.after = false;
+        ix.after = true;
+        iy.after = true;
+        LoopSchedule all_loops[7] = {out_ch, n, ky, in_ch, iy, kx, ix};
         Schedule s;
         s.loops = all_loops;
         auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s);
