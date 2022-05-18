@@ -1,6 +1,7 @@
 #include "builder/dyn_var.h"
 #include "builder/static_var.h"
 #include "conv_functions/conv_types.h"
+#include "conv_functions/schedule.h"
 
 using builder::dyn_var;
 using builder::static_var;
@@ -8,6 +9,8 @@ using conv::ConvOptions;
 using conv::PaddingT;
 using conv::ImageT;
 using conv::KernelT;
+using conv::Schedule;
+using conv::LoopSchedule;
 
 typedef float conv_t;
 
@@ -36,3 +39,24 @@ dyn_var<int> kernel_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_d
 ImageT<conv_t> static_conv2d_with_tiled_loops(dyn_var<conv_t*> inp_data, dyn_var<conv_t*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
                     int* padding, int padding_same);
+
+ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<conv_t*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
+                    int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
+                    int* padding, int padding_same, Schedule s);
+
+
+void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
+                dyn_var<int>* curr_indices, Schedule s, int curr_loop, int* img_bounds_h, int* img_bounds_w, int ww, 
+                int wh, int* stride, int* dilation, bool w_cond, bool h_cond, int pad_w, int pad_h, int orig_iw, int orig_ih,
+                int orig_inch_h_w, int orig_h_w, int oh_times_ow, int inch_oh_ow, int ow, int ker_inch_w_h, int ker_w_h, int oh, int r1, int r2);
+
+void get_current_loop(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
+                    dyn_var<int>* curr_indices,
+                    Schedule s, LoopSchedule loop, int curr_loop, std::string annotation, 
+                    int* img_bounds_h, int* img_bounds_w, int ww, int wh, int* stride, int* dilation, bool w_cond, bool h_cond, int pad_w, int pad_h, int orig_iw, int orig_ih,
+                    int orig_inch_h_w, int orig_h_w, int oh_times_ow, int inch_oh_ow, int ow, int ker_inch_w_h, int ker_w_h, int oh, int r1, int r2);
+
+void update(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data,
+            dyn_var<int>* curr_indices, int* stride, int* dilation, int orig_inch_h_w, int orig_h_w,
+            int oh_times_ow, int inch_oh_ow, int ow, int ker_inch_w_h, int ker_w_h,
+            int orig_iw, int ww, int pad_h, int pad_w);

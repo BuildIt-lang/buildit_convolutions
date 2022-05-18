@@ -114,7 +114,6 @@ struct ConvOptions: public dyn_var<builder::name<convoptions_t_name>> {
 };
 
 
-
 }
 
 #endif
