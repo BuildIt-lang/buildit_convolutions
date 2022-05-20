@@ -401,16 +401,16 @@ ImageT<conv_t> static_conv2d_with_tiled_loops(dyn_var<conv_t*> inp_data, dyn_var
 }
 
 void update(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data,
-            dyn_var<int>* curr_indices, int* stride, int* dilation, int orig_inch_h_w, int orig_h_w,
+            dyn_var<int>** curr_indices, int* stride, int* dilation, int orig_inch_h_w, int orig_h_w,
             int oh_times_ow, int inch_oh_ow, int ow, int ker_inch_w_h, int ker_w_h,
             int orig_iw, int ww, int pad_h, int pad_w) {
-    dyn_var<int> bid = curr_indices[0];
-    dyn_var<int> in_ch = curr_indices[1];
-    dyn_var<int> out_ch = curr_indices[2];
-    dyn_var<int> h = curr_indices[3];
-    dyn_var<int> w = curr_indices[4];
-    dyn_var<int> i = curr_indices[5];
-    dyn_var<int> j = curr_indices[6];
+    dyn_var<int> bid = *(curr_indices[0]);
+    dyn_var<int> in_ch = *(curr_indices[1]);
+    dyn_var<int> out_ch = *(curr_indices[2]);
+    dyn_var<int> h = *(curr_indices[3]);
+    dyn_var<int> w = *(curr_indices[4]);
+    dyn_var<int> i = *(curr_indices[5]);
+    dyn_var<int> j = *(curr_indices[6]);
     dyn_var<int> out_idx = bid * inch_oh_ow + out_ch * oh_times_ow + h * ow + w;
     dyn_var<int> im_i = h * stride[0] + i * dilation[0];
     dyn_var<int> im_j = w * stride[1] + j * dilation[1];
@@ -422,7 +422,7 @@ void update(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<c
 }
 
 void get_current_loop(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
-                    dyn_var<int>* curr_indices,
+                    dyn_var<int>** curr_indices,
                     Schedule s, LoopSchedule loop, int curr_loop, std::string annotation, 
                     int* img_bounds_h, int* img_bounds_w, int ww, int wh, int* stride, int* dilation, bool w_cond, bool h_cond, int pad_w, int pad_h, int orig_iw, int orig_ih,
                     int orig_inch_h_w, int orig_h_w, int oh_times_ow, int inch_oh_ow, int ow, int ker_inch_w_h, int ker_w_h, int oh, int r1, int r2) {
@@ -439,7 +439,7 @@ void get_current_loop(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data,
 }
 
 void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
-                dyn_var<int>* curr_indices, Schedule s, int curr_loop, int* img_bounds_h, int* img_bounds_w, int ww, 
+                dyn_var<int>** curr_indices, Schedule s, int curr_loop, int* img_bounds_h, int* img_bounds_w, int ww, 
                 int wh, int* stride, int* dilation, bool w_cond, bool h_cond, int pad_w, int pad_h, int orig_iw, int orig_ih,
                 int orig_inch_h_w, int orig_h_w, int oh_times_ow, int inch_oh_ow, int ow, int ker_inch_w_h, int ker_w_h, int oh, int r1, int r2) {
     assert(curr_loop < s.n_loops);
@@ -466,9 +466,9 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
     if (loop.type == LoopSchedule::loop_type::KW) {
         builder::annotate(annotation);
         for (dyn_var<int> j = 0; j < loop.bound; j = j + 1) {
-            curr_indices[loop_type] = j; // convert
+            curr_indices[loop_type] = j.addr(); 
             if (h_cond && loop.after) {
-                dyn_var<int> im_j = curr_indices[4] * stride[1] + j * dilation[1];
+                dyn_var<int> im_j = *(curr_indices[4]) * stride[1] + j * dilation[1];
                 if (im_j < pad_w) continue;
                 else if (im_j < orig_iw + pad_w) {
                      get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, img_bounds_h, img_bounds_w, ww, wh, stride, dilation,
@@ -483,9 +483,9 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
     } else if (loop.type == LoopSchedule::loop_type::KH) {
         builder::annotate(annotation);
         for (dyn_var<int> i = 0; i < loop.bound; i = i + 1) {
-            curr_indices[loop_type] = i;
+            curr_indices[loop_type] = i.addr();
             if (w_cond && loop.after) {
-                dyn_var<int> im_i = curr_indices[3] * stride[0] + i * dilation[0];
+                dyn_var<int> im_i = *(curr_indices[3]) * stride[0] + i * dilation[0];
                 if (im_i < pad_h) continue;
                 else if (im_i < orig_ih + pad_h) {
                      get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, img_bounds_h, img_bounds_w, ww, wh, stride, dilation,
@@ -502,9 +502,10 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
         int h_hi = img_bounds_h[r1 * 2 + 1];
         builder::annotate(annotation);
         for (dyn_var<int> i = h_lo; i < h_hi; i = i + 1) {
-            curr_indices[loop_type] = i;
+            curr_indices[loop_type] = i.addr();
+
             if (w_cond && loop.after) {
-                dyn_var<int> im_i = i * stride[0] + curr_indices[5] * dilation[0];
+                dyn_var<int> im_i = i * stride[0] + *(curr_indices[5]) * dilation[0];
                 if (im_i < pad_h) continue; 
                 else if (im_i < orig_ih + pad_h) {
                     get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, img_bounds_h, img_bounds_w, ww, wh, stride, dilation,
@@ -520,9 +521,9 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
         int w_hi = img_bounds_w[r2 * 2 + 1];
         builder::annotate(annotation);
         for (dyn_var<int> i = w_lo; i < w_hi; i = i + 1) {
-            curr_indices[loop_type] = i;
+            curr_indices[loop_type] = i.addr();
             if (h_cond && loop.after) {
-                dyn_var<int> im_j = i * stride[1] + curr_indices[6] * dilation[1];
+                dyn_var<int> im_j = i * stride[1] + *(curr_indices[6]) * dilation[1];
                 if (im_j < pad_w) continue; 
                 else if (im_j < orig_iw + pad_w) {
                     get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, img_bounds_h, img_bounds_w, ww, wh, stride, dilation,
@@ -536,7 +537,7 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
     } else {
         builder::annotate(annotation);
         for (dyn_var<int> idx = 0; idx < loop.bound; idx = idx + 1) {
-            curr_indices[loop_type] = idx;
+            curr_indices[loop_type] = idx.addr();
             get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, img_bounds_h, img_bounds_w, ww, wh, stride, dilation,
                         w_cond, h_cond, pad_w, pad_h, orig_iw, orig_ih, orig_inch_h_w, orig_h_w, oh_times_ow, inch_oh_ow, ow, ker_inch_w_h, ker_w_h, oh, r1, r2);
         }
@@ -594,7 +595,7 @@ ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<
     get_bounds(img_bounds_w, ker_bounds_w, ow, ww, pad_w, stride[1], dilation[1], orig_iw, iw);
 
 
-    dyn_var<int> curr_indices[7];
+    dyn_var<int>* curr_indices[7];
     for (static_var<int> r1 = 0; r1 < 6; r1 = r1 + 1) {
         int h_lo = img_bounds_h[r1 * 2];
         int h_hi = img_bounds_h[r1 * 2 + 1];

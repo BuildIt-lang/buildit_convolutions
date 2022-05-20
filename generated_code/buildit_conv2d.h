@@ -39,7 +39,8 @@ conv_runtime::ImageT<float> buildit_conv2d (conv_runtime::ImageT<float> arg0, co
         // looping over the output
         for (int var15 = 0; var15 < var7.height; var15 = var15 + 1) {
           for (int var16 = 0; var16 < var7.width; var16 = var16 + 1) {
-            var9 = (((((var12 * var7.in_channels) * var7.height) * var7.width) + ((var13 * var7.width) * var7.height)) + (var15 * var7.width)) + var16;
+            var9 = (((((var12 * var7.in_channels) * var7.height) * var7.width) + 
+                ((var13 * var7.width) * var7.height)) + (var15 * var7.width)) + var16;
             // looping over the kernel
             for (int var17 = 0; var17 < arg1.height; var17 = var17 + 1) {
               for (int var18 = 0; var18 < arg1.width; var18 = var18 + 1) {
@@ -49,9 +50,11 @@ conv_runtime::ImageT<float> buildit_conv2d (conv_runtime::ImageT<float> arg0, co
                 if ((((var19 < var3) || (var20 < var4)) || (var19 >= (arg0.height + var3))) || (var20 >= (arg0.width + var4))) {
                   var21 = 0;
                 } else {
-                  var21 = arg0.data[(((((var12 * arg0.in_channels) * arg0.width) * arg0.height) + ((var14 * arg0.width) * arg0.height)) + ((var19 - var3) * arg0.width)) + (var20 - var4)];
+                  var21 = arg0.data[(((((var12 * arg0.in_channels) * arg0.width) * arg0.height) + 
+                      ((var14 * arg0.width) * arg0.height)) + ((var19 - var3) * arg0.width)) + (var20 - var4)];
                 }
-                var11 = (((((var13 * arg1.in_channels) * arg1.width) * arg1.height) + ((var14 * arg1.width) * arg1.height)) + (var17 * arg1.width)) + var18;
+                var11 = (((((var13 * arg1.in_channels) * arg1.width) * arg1.height) + 
+                    ((var14 * arg1.width) * arg1.height)) + (var17 * arg1.width)) + var18;
                 var7.data[var9] = var7.data[var9] + (var21 * arg1.data[var11]);
               }
             }

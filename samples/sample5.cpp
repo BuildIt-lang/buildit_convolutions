@@ -49,20 +49,17 @@ int main() {
     for (int i = 0; i < num_tests; i ++) {
         // define loop schedules
         LoopSchedule n = LoopSchedule(LoopSchedule::loop_type::N, batch_size[i]);
-        n.parallelize(3);
+        // n.parallelize(3);
         LoopSchedule in_ch = LoopSchedule(LoopSchedule::loop_type::IC, in_channels[i]);
         LoopSchedule out_ch = LoopSchedule(LoopSchedule::loop_type::OC, out_channels[i]);
         LoopSchedule iy = LoopSchedule(LoopSchedule::loop_type::IH, ih[i]);
         LoopSchedule ix = LoopSchedule(LoopSchedule::loop_type::IW, iw[i]);
         LoopSchedule ky = LoopSchedule(LoopSchedule::loop_type::KH, wh[i]);
         LoopSchedule kx = LoopSchedule(LoopSchedule::loop_type::KW, ww[i]);
-        ky.after = false;
-        kx.after = false;
-        ix.after = true;
-        iy.after = true;
+        ix.vectorize();
         LoopSchedule all_loops[7] = {out_ch, n, ky, in_ch, iy, kx, ix};
-        Schedule s;
-        s.loops = all_loops;
+        Schedule s = Schedule(all_loops, 7);
+        
         auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s);
         block::eliminate_redundant_vars(ast);
         pipeline::commented_code_generator::generate_code(ast, code_file, 0);
