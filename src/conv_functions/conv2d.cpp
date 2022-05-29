@@ -465,8 +465,9 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
     int loop_type = static_cast<int>(loop.type);
     if (loop.type == LoopSchedule::loop_type::KW) {
         builder::annotate(annotation);
-        for (dyn_var<int> j = 0; j < loop.bound; j = j + 1) {
-            curr_indices[loop_type] = j.addr(); 
+        for (dyn_var<int> j = 0; j < loop.bound; j = j + loop.stride) {
+            dyn_var<int> total = *(curr_indices[loop_type]) + j;
+            curr_indices[loop_type] = total.addr(); 
             if (h_cond && loop.after) {
                 dyn_var<int> im_j = *(curr_indices[4]) * stride[1] + j * dilation[1];
                 if (im_j < pad_w) continue;
@@ -482,8 +483,9 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
         }
     } else if (loop.type == LoopSchedule::loop_type::KH) {
         builder::annotate(annotation);
-        for (dyn_var<int> i = 0; i < loop.bound; i = i + 1) {
-            curr_indices[loop_type] = i.addr();
+        for (dyn_var<int> i = 0; i < loop.bound; i = i + loop.stride) {
+            dyn_var<int> total = *(curr_indices[loop_type]) + i;
+            curr_indices[loop_type] = total.addr();
             if (w_cond && loop.after) {
                 dyn_var<int> im_i = *(curr_indices[3]) * stride[0] + i * dilation[0];
                 if (im_i < pad_h) continue;
@@ -501,8 +503,9 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
         int h_lo = img_bounds_h[r1 * 2];
         int h_hi = img_bounds_h[r1 * 2 + 1];
         builder::annotate(annotation);
-        for (dyn_var<int> i = h_lo; i < h_hi; i = i + 1) {
-            curr_indices[loop_type] = i.addr();
+        for (dyn_var<int> i = h_lo; i < h_hi; i = i + loop.stride) {
+            dyn_var<int> total = *(curr_indices[loop_type]) + i;
+            curr_indices[loop_type] = total.addr();
 
             if (w_cond && loop.after) {
                 dyn_var<int> im_i = i * stride[0] + *(curr_indices[5]) * dilation[0];
@@ -520,8 +523,9 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
         int w_lo = img_bounds_w[r2 * 2];
         int w_hi = img_bounds_w[r2 * 2 + 1];
         builder::annotate(annotation);
-        for (dyn_var<int> i = w_lo; i < w_hi; i = i + 1) {
-            curr_indices[loop_type] = i.addr();
+        for (dyn_var<int> i = w_lo; i < w_hi; i = i + loop.stride) {
+            dyn_var<int> total = *(curr_indices[loop_type]) + i;
+            curr_indices[loop_type] = total.addr();
             if (h_cond && loop.after) {
                 dyn_var<int> im_j = i * stride[1] + *(curr_indices[6]) * dilation[1];
                 if (im_j < pad_w) continue; 
@@ -536,8 +540,9 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
         }
     } else {
         builder::annotate(annotation);
-        for (dyn_var<int> idx = 0; idx < loop.bound; idx = idx + 1) {
-            curr_indices[loop_type] = idx.addr();
+        for (dyn_var<int> idx = 0; idx < loop.bound; idx = idx + loop.stride) {
+            dyn_var<int> total = *(curr_indices[loop_type]) + idx;
+            curr_indices[loop_type] = total.addr();
             get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, img_bounds_h, img_bounds_w, ww, wh, stride, dilation,
                         w_cond, h_cond, pad_w, pad_h, orig_iw, orig_ih, orig_inch_h_w, orig_h_w, oh_times_ow, inch_oh_ow, ow, ker_inch_w_h, ker_w_h, oh, r1, r2);
         }
@@ -594,8 +599,11 @@ ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<
     get_bounds(img_bounds_h, ker_bounds_h, oh, wh, pad_h, stride[0], dilation[0], orig_ih, ih);
     get_bounds(img_bounds_w, ker_bounds_w, ow, ww, pad_w, stride[1], dilation[1], orig_iw, iw);
 
-
-    dyn_var<int>* curr_indices[7];
+    dyn_var<int>* curr_indices[10];
+    dyn_var<int> st = 0;
+    for (static_var<int> i = 0; i < 10; i = i + 1) {
+        curr_indices[i] = st.addr();
+    }
     for (static_var<int> r1 = 0; r1 < 6; r1 = r1 + 1) {
         int h_lo = img_bounds_h[r1 * 2];
         int h_hi = img_bounds_h[r1 * 2 + 1];

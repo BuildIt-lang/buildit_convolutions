@@ -2,6 +2,7 @@
 #define CONV_SCHEDULE_H
 #include <assert.h>
 
+
 namespace conv {
 
 struct LoopSchedule {
@@ -9,7 +10,8 @@ struct LoopSchedule {
     bool unrolled = false;
     int bound;
     int parallel_collapse = 0;
-    bool after = false; 
+    bool after = false;
+    int stride = 1;
 
     enum class loop_type {
         N,   // batches
@@ -40,12 +42,12 @@ struct LoopSchedule {
         unrolled = true;
     }
 
-    LoopSchedule* tile(int* dims, int n_subloops) {
-        LoopSchedule* subloops = nullptr;
+    LoopSchedule* tile(int* dims, int n_subloops, LoopSchedule* subloops) {
         int total = 1;
         for (int i = 0; i < n_subloops; i++) {
             total *= dims[i];
-            subloops[i] = LoopSchedule(type, dims[i]);
+            subloops[i] = LoopSchedule(type, bound / total * dims[i]);
+            subloops[i].stride = bound / total;
         }
         if (total != bound) {
             std::cout << "Error: invalid tile sizes" << std::endl;
