@@ -8,6 +8,9 @@ namespace conv {
 struct LoopSchedule {
     bool vectorized = false;
     bool unrolled = false;
+    bool tiled = false;
+    bool first = true;
+    bool last = true;
     int bound;
     int parallel_collapse = 0;
     bool after = false;
@@ -42,17 +45,25 @@ struct LoopSchedule {
         unrolled = true;
     }
 
-    LoopSchedule* tile(int* dims, int n_subloops, LoopSchedule* subloops) {
+    LoopSchedule* tile(int* dims, int n_subloops, LoopSchedule* subloops, int loop_len) {
         int total = 1;
+        // std::cout << bound << std::endl;
         for (int i = 0; i < n_subloops; i++) {
             total *= dims[i];
-            subloops[i] = LoopSchedule(type, bound / total * dims[i]);
-            subloops[i].stride = bound / total;
+            subloops[i] = LoopSchedule(type, loop_len / total * dims[i]);
+            subloops[i].stride = loop_len / total;
+            subloops[i].tiled = true;
+            if (i != n_subloops - 1) {
+                subloops[i].last = false;
+            }
+            if (i != 0) {
+                subloops[i].first = false;
+            }
         }
-        if (total != bound) {
-            std::cout << "Error: invalid tile sizes" << std::endl;
-            assert(false);
-        }
+        // if (total != bound) {
+        //     std::cout << "Error: invalid tile sizes" << std::endl;
+        //     assert(false);
+        // }
         return subloops;
     }
 };
@@ -72,6 +83,7 @@ struct Schedule {
         
         for (int i = 0; i < n_loops; i = i + 1) {
             LoopSchedule loop = loop_arr[i];
+            if (!loop.last) continue;
             if (loop.type == LoopSchedule::loop_type::IW) {
                 if (found_kw) {
                     loop_arr[i].after = true;

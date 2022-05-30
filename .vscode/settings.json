@@ -71,6 +71,23 @@
         "ios": "cpp",
         "mutex": "cpp",
         "stack": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "__tree": "cpp",
+        "cfenv": "cpp",
+        "cinttypes": "cpp",
+        "condition_variable": "cpp",
+        "csignal": "cpp",
+        "forward_list": "cpp",
+        "future": "cpp",
+        "map": "cpp",
+        "numeric": "cpp",
+        "queue": "cpp",
+        "random": "cpp",
+        "regex": "cpp",
+        "set": "cpp",
+        "shared_mutex": "cpp",
+        "thread": "cpp",
+        "typeindex": "cpp",
+        "valarray": "cpp"
     }
 }

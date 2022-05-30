@@ -47,6 +47,7 @@ int main() {
     int in_channels[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 10, 5, 5, 5};
     int out_channels[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 10, 10, 1, 3};
     for (int i = 0; i < num_tests; i ++) {
+        std::cout << "------ test " << i << " -----" << std::endl;
         // define loop schedules
         LoopSchedule n = LoopSchedule(LoopSchedule::loop_type::N, batch_size[i]);
         LoopSchedule in_ch = LoopSchedule(LoopSchedule::loop_type::IC, in_channels[i]);
@@ -55,30 +56,78 @@ int main() {
         LoopSchedule ix = LoopSchedule(LoopSchedule::loop_type::IW, iw[i]);
         LoopSchedule ky = LoopSchedule(LoopSchedule::loop_type::KH, wh[i]);
         LoopSchedule kx = LoopSchedule(LoopSchedule::loop_type::KW, ww[i]);
+
+        int oh = (ih[i] - dilation[i][0] * (wh[i] - 1) - 1) / stride[i][0] + 1;
+        int ow = (iw[i] - dilation[i][1] * (ww[i] - 1) - 1) / stride[i][1] + 1;
+        ix.bound = ow;
+        iy.bound = oh;
+        // std::cout << ow << " " << oh << std::endl;
         
         if (i == 10) {
             int dims[] = {2, 5};
             LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::IC, in_channels[i]), LoopSchedule(LoopSchedule::loop_type::IC, in_channels[i])};
-            in_ch.tile(dims, 2, subloops);
+            in_ch.tile(dims, 2, subloops, 10);
             LoopSchedule all_loops[8] = {out_ch, n, ky, subloops[0], iy, subloops[1], kx, ix};
             Schedule s = Schedule(all_loops, 8);
             auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s);
             block::eliminate_redundant_vars(ast);
             pipeline::commented_code_generator::generate_code(ast, code_file, 0);
             code_file << "\n" << std::endl;
-        } else if (i == 15) {
+        } else if (i == 11) {
             int dims[] = {2, 5};
-            // TODO: need to do something about image and kernel bounds
-            LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::IW, iw[i]), LoopSchedule(LoopSchedule::loop_type::IW, iw[i])};
-            ix.tile(dims, 2, subloops);
-            LoopSchedule all_loops[8] = {out_ch, n, ky, in_ch, iy, kx, subloops[0], subloops[1]};
+            LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::KW, ww[i]), LoopSchedule(LoopSchedule::loop_type::KW, ww[i])};
+            kx.tile(dims, 2, subloops, 10);
+            LoopSchedule all_loops[8] = {out_ch, n, ky, in_ch, iy, subloops[0], ix, subloops[1]};
+            Schedule s = Schedule(all_loops, 8);
+            auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s);
+            block::eliminate_redundant_vars(ast);
+            pipeline::commented_code_generator::generate_code(ast, code_file, 0);
+            code_file << "\n" << std::endl;
+        } else if (i == 1) {
+            int dims[] = {3, 3};
+            LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::IW, ow), LoopSchedule(LoopSchedule::loop_type::IW, ow)};
+            ix.tile(dims, 2, subloops, 10);
+            LoopSchedule all_loops[8] = {out_ch, n, ky, in_ch, subloops[0], iy, subloops[1], kx};
+            Schedule s = Schedule(all_loops, 8);
+            auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s);
+            block::eliminate_redundant_vars(ast);
+            pipeline::commented_code_generator::generate_code(ast, code_file, 0);
+            code_file << "\n" << std::endl;
+        } else if (i == 7) {
+            // the center region loop bounds are 2 to 13
+            int dims[] = {11, 1};
+            LoopSchedule subloops[] = {LoopSchedule(LoopSchedule::loop_type::IW, ow), LoopSchedule(LoopSchedule::loop_type::IW, ow)};
+            ix.tile(dims, 2, subloops, 11);
+            LoopSchedule all_loops[8] = {out_ch, ky, in_ch, n, subloops[0], iy, kx, subloops[1]};
+            Schedule s = Schedule(all_loops, 8);
+            auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s);
+            block::eliminate_redundant_vars(ast);
+            pipeline::commented_code_generator::generate_code(ast, code_file, 0);
+            code_file << "\n" << std::endl;
+        } else if (i == 8) {
+            // the center region loop bounds are 3 to 11
+            int dims[] = {2, 2, 2};
+            LoopSchedule subloops[] = {LoopSchedule(LoopSchedule::loop_type::IH, oh), LoopSchedule(LoopSchedule::loop_type::IH, oh), LoopSchedule(LoopSchedule::loop_type::IH, oh)};
+            iy.tile(dims, 3, subloops, 8);
+            LoopSchedule all_loops[9] = {out_ch, n, ky, in_ch, subloops[0], ix, subloops[1], kx, subloops[2]};
+            Schedule s = Schedule(all_loops, 9);
+            auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s);
+            block::eliminate_redundant_vars(ast);
+            pipeline::commented_code_generator::generate_code(ast, code_file, 0);
+            code_file << "\n" << std::endl;
+        } else if (i == 9) {
+            // the center region loop bounds are 3 to 9
+            int dims[] = {2, 3};
+            LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::IH, oh), LoopSchedule(LoopSchedule::loop_type::IH, oh)};
+            iy.tile(dims, 2, subloops, 6);
+            LoopSchedule all_loops[8] = {out_ch, n, ky, in_ch, ix, subloops[0], kx, subloops[1]};
             Schedule s = Schedule(all_loops, 8);
             auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s);
             block::eliminate_redundant_vars(ast);
             pipeline::commented_code_generator::generate_code(ast, code_file, 0);
             code_file << "\n" << std::endl;
         } else {
-            LoopSchedule all_loops[7] = {out_ch, n, ky, in_ch, iy, kx, ix};
+            LoopSchedule all_loops[7] = {out_ch, n, ky, in_ch, iy, ix, kx};
             Schedule s = Schedule(all_loops, 7);
             auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s);
             block::eliminate_redundant_vars(ast);
