@@ -8,13 +8,19 @@ namespace conv {
 struct LoopSchedule {
     bool vectorized = false;
     bool unrolled = false;
-    bool tiled = false;
-    bool first = true;
-    bool last = true;
-    int bound;
     int parallel_collapse = 0;
-    bool after = false;
+
+    // tiling
+    bool tiled = false;
+    bool first = true; // first tiled loop
+    bool last = true; // last tiled loop
+
+    int bound; // upper bound
     int stride = 1;
+
+    // if this is an image loop does it come after 
+    // a kernel loop for the same dim, and vice versa
+    bool after = false;
 
     enum class loop_type {
         N,   // batches
@@ -22,11 +28,15 @@ struct LoopSchedule {
         OC,  // out channels
         IH,  // image height
         IW,  // image width
+        KERNEL,
         KH,  // kernel height
-        KW   // kernel width
+        KW,   // kernel width
+        IMG
     };
 
     loop_type type;
+
+    int dim; // 0 for height, 1 for width, etc.
 
     LoopSchedule(loop_type loop, int n) {
         bound = n;
@@ -51,6 +61,7 @@ struct LoopSchedule {
         for (int i = 0; i < n_subloops; i++) {
             total *= dims[i];
             subloops[i] = LoopSchedule(type, loop_len / total * dims[i]);
+            subloops[i].dim = dim;
             subloops[i].stride = loop_len / total;
             subloops[i].tiled = true;
             if (i != n_subloops - 1) {
@@ -60,10 +71,6 @@ struct LoopSchedule {
                 subloops[i].first = false;
             }
         }
-        // if (total != bound) {
-        //     std::cout << "Error: invalid tile sizes" << std::endl;
-        //     assert(false);
-        // }
         return subloops;
     }
 };
@@ -94,12 +101,12 @@ struct Schedule {
                     loop_arr[i].after = true;
                 }
                 found_ih = true;
-            } else if (loop.type == LoopSchedule::loop_type::KW) {
+            } else if (loop.type == LoopSchedule::loop_type::KERNEL && loop.dim == 1) {
                 if (found_iw) {
                     loop_arr[i].after = true;
                 }
                 found_kw = true;
-            } else if (loop.type == LoopSchedule::loop_type::KH) {
+            } else if (loop.type == LoopSchedule::loop_type::KERNEL && loop.dim == 0) {
                 if (found_ih) {
                     loop_arr[i].after = true;
                 }

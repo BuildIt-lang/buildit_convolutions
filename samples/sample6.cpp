@@ -47,15 +47,17 @@ int main() {
     int in_channels[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 10, 5, 5, 5};
     int out_channels[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 10, 10, 1, 3};
     for (int i = 0; i < num_tests; i ++) {
-        std::cout << "------ test " << i << " -----" << std::endl;
+        // std::cout << "------ test " << i << " -----" << std::endl;
         // define loop schedules
         LoopSchedule n = LoopSchedule(LoopSchedule::loop_type::N, batch_size[i]);
         LoopSchedule in_ch = LoopSchedule(LoopSchedule::loop_type::IC, in_channels[i]);
         LoopSchedule out_ch = LoopSchedule(LoopSchedule::loop_type::OC, out_channels[i]);
         LoopSchedule iy = LoopSchedule(LoopSchedule::loop_type::IH, ih[i]);
         LoopSchedule ix = LoopSchedule(LoopSchedule::loop_type::IW, iw[i]);
-        LoopSchedule ky = LoopSchedule(LoopSchedule::loop_type::KH, wh[i]);
-        LoopSchedule kx = LoopSchedule(LoopSchedule::loop_type::KW, ww[i]);
+        LoopSchedule ky = LoopSchedule(LoopSchedule::loop_type::KERNEL, wh[i]);
+        LoopSchedule kx = LoopSchedule(LoopSchedule::loop_type::KERNEL, ww[i]);
+        ky.dim = 0;
+        kx.dim = 1;
 
         int oh = (ih[i] - dilation[i][0] * (wh[i] - 1) - 1) / stride[i][0] + 1;
         int ow = (iw[i] - dilation[i][1] * (ww[i] - 1) - 1) / stride[i][1] + 1;
@@ -75,7 +77,7 @@ int main() {
             code_file << "\n" << std::endl;
         } else if (i == 11) {
             int dims[] = {2, 5};
-            LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::KW, ww[i]), LoopSchedule(LoopSchedule::loop_type::KW, ww[i])};
+            LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::KERNEL, ww[i]), LoopSchedule(LoopSchedule::loop_type::KERNEL, ww[i])};
             kx.tile(dims, 2, subloops, 10);
             LoopSchedule all_loops[8] = {out_ch, n, ky, in_ch, iy, subloops[0], ix, subloops[1]};
             Schedule s = Schedule(all_loops, 8);
