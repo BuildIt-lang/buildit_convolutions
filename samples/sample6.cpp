@@ -52,12 +52,14 @@ int main() {
         LoopSchedule n = LoopSchedule(LoopSchedule::loop_type::N, batch_size[i]);
         LoopSchedule in_ch = LoopSchedule(LoopSchedule::loop_type::IC, in_channels[i]);
         LoopSchedule out_ch = LoopSchedule(LoopSchedule::loop_type::OC, out_channels[i]);
-        LoopSchedule iy = LoopSchedule(LoopSchedule::loop_type::IH, ih[i]);
-        LoopSchedule ix = LoopSchedule(LoopSchedule::loop_type::IW, iw[i]);
+        LoopSchedule iy = LoopSchedule(LoopSchedule::loop_type::IMG, ih[i]);
+        LoopSchedule ix = LoopSchedule(LoopSchedule::loop_type::IMG, iw[i]);
         LoopSchedule ky = LoopSchedule(LoopSchedule::loop_type::KERNEL, wh[i]);
         LoopSchedule kx = LoopSchedule(LoopSchedule::loop_type::KERNEL, ww[i]);
         ky.dim = 0;
         kx.dim = 1;
+        ix.dim = 1;
+        iy.dim = 0;
 
         int oh = (ih[i] - dilation[i][0] * (wh[i] - 1) - 1) / stride[i][0] + 1;
         int ow = (iw[i] - dilation[i][1] * (ww[i] - 1) - 1) / stride[i][1] + 1;
@@ -87,7 +89,7 @@ int main() {
             code_file << "\n" << std::endl;
         } else if (i == 1) {
             int dims[] = {3, 3};
-            LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::IW, ow), LoopSchedule(LoopSchedule::loop_type::IW, ow)};
+            LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::IMG, ow), LoopSchedule(LoopSchedule::loop_type::IMG, ow)};
             ix.tile(dims, 2, subloops, 10);
             LoopSchedule all_loops[8] = {out_ch, n, ky, in_ch, subloops[0], iy, subloops[1], kx};
             Schedule s = Schedule(all_loops, 8);
@@ -98,7 +100,7 @@ int main() {
         } else if (i == 7) {
             // the center region loop bounds are 2 to 13
             int dims[] = {11, 1};
-            LoopSchedule subloops[] = {LoopSchedule(LoopSchedule::loop_type::IW, ow), LoopSchedule(LoopSchedule::loop_type::IW, ow)};
+            LoopSchedule subloops[] = {LoopSchedule(LoopSchedule::loop_type::IMG, ow), LoopSchedule(LoopSchedule::loop_type::IMG, ow)};
             ix.tile(dims, 2, subloops, 11);
             LoopSchedule all_loops[8] = {out_ch, ky, in_ch, n, subloops[0], iy, kx, subloops[1]};
             Schedule s = Schedule(all_loops, 8);
@@ -109,7 +111,7 @@ int main() {
         } else if (i == 8) {
             // the center region loop bounds are 3 to 11
             int dims[] = {2, 2, 2};
-            LoopSchedule subloops[] = {LoopSchedule(LoopSchedule::loop_type::IH, oh), LoopSchedule(LoopSchedule::loop_type::IH, oh), LoopSchedule(LoopSchedule::loop_type::IH, oh)};
+            LoopSchedule subloops[] = {LoopSchedule(LoopSchedule::loop_type::IMG, oh), LoopSchedule(LoopSchedule::loop_type::IMG, oh), LoopSchedule(LoopSchedule::loop_type::IMG, oh)};
             iy.tile(dims, 3, subloops, 8);
             LoopSchedule all_loops[9] = {out_ch, n, ky, in_ch, subloops[0], ix, subloops[1], kx, subloops[2]};
             Schedule s = Schedule(all_loops, 9);
@@ -120,7 +122,7 @@ int main() {
         } else if (i == 9) {
             // the center region loop bounds are 3 to 9
             int dims[] = {2, 3};
-            LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::IH, oh), LoopSchedule(LoopSchedule::loop_type::IH, oh)};
+            LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::IMG, oh), LoopSchedule(LoopSchedule::loop_type::IMG, oh)};
             iy.tile(dims, 2, subloops, 6);
             LoopSchedule all_loops[8] = {out_ch, n, ky, in_ch, ix, subloops[0], kx, subloops[1]};
             Schedule s = Schedule(all_loops, 8);

@@ -48,13 +48,13 @@ ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<
 void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
                 dyn_var<int>** curr_indices, Schedule s, int curr_loop, int* img_bounds_h, int* img_bounds_w, int ww, 
                 int wh, int* stride, int* dilation, bool w_cond, bool h_cond, int pad_w, int pad_h, int orig_iw, int orig_ih,
-                int orig_inch_h_w, int orig_h_w, int oh_times_ow, int inch_oh_ow, int ow, int ker_inch_w_h, int ker_w_h, int oh, int r1, int r2, bool* cond, int* pad, int* orig);
+                int orig_inch_h_w, int orig_h_w, int oh_times_ow, int inch_oh_ow, int ow, int ker_inch_w_h, int ker_w_h, int oh, int r1, int r2, bool* cond, int* pad, int* orig, int* r, int** img_bounds);
 
 void get_current_loop(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
                     dyn_var<int>** curr_indices,
                     Schedule s, LoopSchedule loop, int curr_loop, std::string annotation, 
                     int* img_bounds_h, int* img_bounds_w, int ww, int wh, int* stride, int* dilation, bool w_cond, bool h_cond, int pad_w, int pad_h, int orig_iw, int orig_ih,
-                    int orig_inch_h_w, int orig_h_w, int oh_times_ow, int inch_oh_ow, int ow, int ker_inch_w_h, int ker_w_h, int oh, int r1, int r2, bool* cond, int* pad, int* orig);
+                    int orig_inch_h_w, int orig_h_w, int oh_times_ow, int inch_oh_ow, int ow, int ker_inch_w_h, int ker_w_h, int oh, int r1, int r2, bool* cond, int* pad, int* orig, int* r, int** img_bounds);
 
 void update(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data,
             dyn_var<int>** curr_indices, int* stride, int* dilation, int orig_inch_h_w, int orig_h_w,

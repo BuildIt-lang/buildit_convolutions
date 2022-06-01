@@ -26,12 +26,12 @@ struct LoopSchedule {
         N,   // batches
         IC,  // in channels
         OC,  // out channels
-        IH,  // image height
+        IMG,  // image height
         IW,  // image width
         KERNEL,
         KH,  // kernel height
         KW,   // kernel width
-        IMG
+        IH
     };
 
     loop_type type;
@@ -91,12 +91,12 @@ struct Schedule {
         for (int i = 0; i < n_loops; i = i + 1) {
             LoopSchedule loop = loop_arr[i];
             if (!loop.last) continue;
-            if (loop.type == LoopSchedule::loop_type::IW) {
+            if (loop.type == LoopSchedule::loop_type::IMG && loop.dim == 1) {
                 if (found_kw) {
                     loop_arr[i].after = true;
                 }
                 found_iw = true;
-            } else if (loop.type == LoopSchedule::loop_type::IH) {
+            } else if (loop.type == LoopSchedule::loop_type::IMG && loop.dim == 0) {
                 if (found_kh) {
                     loop_arr[i].after = true;
                 }
