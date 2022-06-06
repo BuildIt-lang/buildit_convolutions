@@ -6,7 +6,7 @@ using namespace block;
 
 namespace pipeline {
 
-void commented_code_generator::visit(for_stmt::Ptr a) {
+void conv_code_generator::visit(for_stmt::Ptr a) {
     if (a->annotation == "") {
         c_code_generator::visit(a);
         return;
@@ -27,11 +27,11 @@ void commented_code_generator::visit(for_stmt::Ptr a) {
     if (comment_idx != -1) {
         oss << "// " << (curr_annotation).substr(comment_idx + 9) << std::endl;
         printer::indent(oss, curr_indent);
-        commented_code_generator::visit(a);
+        conv_code_generator::visit(a);
     } else if (pragma_idx != -1) {
         oss << curr_annotation.substr(pragma_idx) << std::endl;
         printer::indent(oss, curr_indent);
-        commented_code_generator::visit(a);
+        conv_code_generator::visit(a);
     } else  {
         c_code_generator::visit(a);
     }

@@ -1,20 +1,19 @@
 #include "builder/dyn_var.h"
 #include "builder/static_var.h"
 #include "conv_functions/conv_types.h"
+#include "conv_functions/runtime.h"
+#include "blocks/c_code_generator.h"
 #include "conv_functions/schedule.h"
 
 using builder::dyn_var;
 using builder::static_var;
-using conv::ConvOptions;
 using conv::PaddingT;
+using conv::ConvOptions;
 using conv::ImageT;
-using conv::KernelT;
 using conv::Schedule;
 using conv::LoopSchedule;
 
 typedef float conv_t;
-
-ImageT<conv_t> dyn_conv2d(ImageT<conv_t> input, KernelT<conv_t> weight, ConvOptions options);
 
 ImageT<conv_t> static_conv2d(dyn_var<conv_t*> inp_data, dyn_var<conv_t*> weight_data, int iw, int ih, int ww, int wh, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 

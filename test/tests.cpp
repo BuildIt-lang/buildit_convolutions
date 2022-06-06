@@ -1,8 +1,9 @@
 #include <iostream>
 #include <torch/torch.h>
-#include "buildit_conv2d.h"
 #include "test_types.h"
 #include <assert.h>
+#include "runtime_functions.h"
+#include "runtime_types.h"
 #include "pipeline/comment_generator.h"
 #include "conv_functions/conv2d.h"
 #include "specialized_test_code.h"
@@ -54,26 +55,6 @@ ExpandingArray<2> convert_to_expanding_array(int* arr) {
     return expanding_arr;
 }
 
-void test_conv2d(int iw, int ih, int ww, int wh, int batch_size, int in_channels, int out_channels, conv_runtime::ConvOptions conv_options, F::ConvFuncOptions<2> torch_options, string test_name, string test_details) {
-    int64_t lo = 0;
-    int64_t hi = 100;
-    // generate image and kernel
-    Tensor torch_input = torch::randint(lo, hi, {batch_size, in_channels, ih, iw}).to(torch::kFloat32); // using float here because dilation doesn't work with int
-    Tensor torch_weight = torch::randint(lo, hi, {out_channels, in_channels/conv_options.groups, wh, ww}).to(torch::kFloat32);
-    // std::cout << torch_input << std::endl;
-    // std::cout << torch_weight << std::endl;
-    // // get expected output
-    Tensor torch_output = F::conv2d(torch_input, torch_weight, torch_options);
-    // std::cout << torch_output << std::endl;
-    // get actual output
-    // Tensor torch_inp = torch_input.to(torch::kInt32);
-    // Tensor torch_kernel = torch_weight.to(torch::kInt32);
-    conv_runtime::ImageT<conv_t> conv_input = {.batch_size = batch_size, .in_channels = in_channels, .width = iw, .height = ih, .data = torch_input.data_ptr<conv_t>()};
-    conv_runtime::KernelT<conv_t> conv_weight = {.out_channels = out_channels, .in_channels = in_channels, .width = ww, .height = wh, .data = torch_weight.data_ptr<conv_t>()};
-    conv_runtime::ImageT<conv_t> conv_output = buildit_conv2d(conv_input, conv_weight, conv_options);
-    // conv_output.print();
-    compare(torch_output, conv_output, test_name, test_details);
-}
 
 // testing specialized conv2d
 void test_static_conv2d(TestOptions opt, GeneratedFunction func, string test_name) {
@@ -96,8 +77,6 @@ void test_static_conv2d(TestOptions opt, GeneratedFunction func, string test_nam
     Tensor torch_output = F::conv2d(torch_input, torch_weight, torch_options);
     // std::cout << torch_output << std::endl;
     // get actual output
-    // Tensor torch_inp = torch_input.to(torch::kInt32);
-    // Tensor torch_kernel = torch_weight.to(torch::kInt32);
     conv_t* inp_data = torch_input.data_ptr<conv_t>();
     conv_t* kernel_data = torch_weight.data_ptr<conv_t>();
     conv_runtime::ImageT<conv_t> conv_output = func(inp_data, kernel_data);
@@ -106,141 +85,9 @@ void test_static_conv2d(TestOptions opt, GeneratedFunction func, string test_nam
     compare(torch_output, conv_output, test_name, "");
 }
 
-
-
-// unit tests
-
-void test_default_options(int batch_sz, int in_channels, int out_channels) {
-    conv_runtime::ConvOptions conv_options = {.stride = default_stride, .padding = default_padding, .dilation = default_dilation, .groups = default_groups};
-    F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
-    int iw[] = {5, 5, 10, 1};
-    int ih[] = {5, 2, 10, 6};
-    int ww[] = {3, 2, 6, 1};
-    int wh[] = {3, 2, 3, 2};
-    int n_tests = 4;
-    string details[] = {"nxn image, nxn kernel", "nxn kernel", "nxn image", "1xn image"};
-    for (int i = 0; i < n_tests; i++) {
-        test_conv2d(iw[i], ih[i], ww[i], wh[i], batch_sz, in_channels, out_channels, conv_options, torch_options, "default_options", details[i]);
-    }
-}
-
-void test_stride(int batch_sz, int in_channels, int out_channels) {
-    int stride[2] = {2, 1};
-    conv_runtime::ConvOptions conv_options = {.stride = stride, .padding = default_padding, .dilation = default_dilation, .groups = default_groups};
-    F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
-    ExpandingArray<2> torch_stride = convert_to_expanding_array(stride);
-    torch_options = torch_options.stride(torch_stride);
-    int iw = 10;
-    int ih = 8;
-    int ww = 2;
-    int wh = 3;
-    test_conv2d(iw, ih, ww, wh, batch_sz, in_channels, out_channels, conv_options, torch_options, "stride", "");
-}
-
-void test_dilation(int batch_sz, int in_channels, int out_channels) {
-    int dilation[2] = {3, 2};
-    conv_runtime::ConvOptions conv_options = {.stride = default_stride, .padding = default_padding, .dilation = dilation, .groups = default_groups};
-    F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
-    ExpandingArray<2> torch_dilation = convert_to_expanding_array(dilation);
-    torch_options = torch_options.dilation(torch_dilation);
-    int iw = 15;
-    int ih = 20;
-    int ww = 2;
-    int wh = 3;
-    test_conv2d(iw, ih, ww, wh, batch_sz, in_channels, out_channels, conv_options, torch_options, "dilation", "");
-}
-
-void test_stride_dilation(int batch_sz, int in_channels, int out_channels) {
-    int dilation[2] = {3, 2};
-    int stride[2] = {2, 3};
-    conv_runtime::ConvOptions conv_options = {.stride = stride, .padding = default_padding, .dilation = dilation, .groups = default_groups};
-    F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
-    ExpandingArray<2> torch_dilation = convert_to_expanding_array(dilation);
-    ExpandingArray<2> torch_stride = convert_to_expanding_array(stride);
-    torch_options = torch_options.dilation(torch_dilation).stride(torch_stride);
-    int iw = 15;
-    int ih = 20;
-    int ww = 2;
-    int wh = 3;
-    test_conv2d(iw, ih, ww, wh, batch_sz, in_channels, out_channels, conv_options, torch_options, "stride and dilation", "");
-}
-
-void test_padding_arr(int batch_sz, int in_channels, int out_channels) {
-    int pad_arr[2] = {1, 2};
-    conv_runtime::PaddingT padding = conv_runtime::PaddingT(pad_arr);
-    conv_runtime::ConvOptions conv_options = {.stride = default_stride, .padding = padding, .dilation = default_dilation, .groups = default_groups};
-    F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
-    ExpandingArray<2> torch_padding = convert_to_expanding_array(pad_arr);
-    torch_options = torch_options.padding(torch_padding);
-    int iw = 5;
-    int ih = 5;
-    int ww = 2;
-    int wh = 3;
-    test_conv2d(iw, ih, ww, wh, batch_sz, in_channels, out_channels, conv_options, torch_options, "padding", "arr");
-}
-
-void test_padding_same(int batch_sz, int in_channels, int out_channels) {
-    char pad_type[] = "same";
-    conv_runtime::PaddingT padding = conv_runtime::PaddingT(pad_type);
-    conv_runtime::ConvOptions conv_options = {.stride = default_stride, .padding = padding, .dilation = default_dilation, .groups = default_groups};
-    F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
-    torch_options = torch_options.padding(torch::kSame);
-    int iw = 5;
-    int ih = 5;
-    int ww = 3;
-    int wh = 3;
-    test_conv2d(iw, ih, ww, wh, batch_sz, in_channels, out_channels, conv_options, torch_options, "padding", "same");
-}
-
-void test_stride_dilation_padding(int batch_sz, int in_channels, int out_channels) {
-    int dilation[2] = {3, 2};
-    int stride[2] = {2, 3};
-    int pad_arr[2] = {3, 4};
-    conv_runtime::PaddingT padding = conv_runtime::PaddingT(pad_arr);
-    conv_runtime::ConvOptions conv_options = {.stride = stride, .padding = padding, .dilation = dilation, .groups = default_groups};
-    F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
-    ExpandingArray<2> torch_dilation = convert_to_expanding_array(dilation);
-    ExpandingArray<2> torch_stride = convert_to_expanding_array(stride);
-    ExpandingArray<2> torch_padding = convert_to_expanding_array(pad_arr);
-    torch_options = torch_options.dilation(torch_dilation).stride(torch_stride).padding(torch_padding);
-    int iw = 15;
-    int ih = 20;
-    int ww = 2;
-    int wh = 3;
-    test_conv2d(iw, ih, ww, wh, batch_sz, in_channels, out_channels, conv_options, torch_options, "stride, dilation, padding", "");
-}
-
-void test_dilation_padding_same(int batch_sz, int in_channels, int out_channels) {
-    int dilation[2] = {3, 2};
-    char pad_type[] = "same";
-    conv_runtime::PaddingT padding = conv_runtime::PaddingT(pad_type);
-    conv_runtime::ConvOptions conv_options = {.stride = default_stride, .padding = padding, .dilation = dilation, .groups = default_groups};
-    F::ConvFuncOptions<2> torch_options = F::Conv2dFuncOptions();
-    ExpandingArray<2> torch_dilation = convert_to_expanding_array(dilation);
-    torch_options = torch_options.dilation(torch_dilation).padding(torch::kSame);
-    int iw = 15;
-    int ih = 20;
-    int ww = 3;
-    int wh = 3;
-    test_conv2d(iw, ih, ww, wh, batch_sz, in_channels, out_channels, conv_options, torch_options, "dilation, padding", "same");
-}
-
-void test_batching_channels(int batch_sz, int in_ch, int out_ch) {
-    std::cout << "Testing batch_size=" << batch_sz << ", in_channels=" << in_ch << ", out_channels=" << out_ch << std::endl;
-    test_default_options(batch_sz, in_ch, out_ch);
-    test_stride(batch_sz, in_ch, out_ch);
-    test_dilation(batch_sz, in_ch, out_ch);
-    test_stride_dilation(batch_sz, in_ch, out_ch);
-    test_padding_arr(batch_sz, in_ch, out_ch);
-    test_padding_same(batch_sz, in_ch, out_ch);
-    test_stride_dilation_padding(batch_sz, in_ch, out_ch);
-    test_dilation_padding_same(batch_sz, in_ch, out_ch);
-    std::cout << "Done" << std::endl;
-}
-
 void compile_and_run(TestOptions opt, std::string test_name) {
     std::string flags = "";
-    auto fptr = (GeneratedFunction)pipeline::commented_code_generator::compile_function(
+    auto fptr = (GeneratedFunction)pipeline::conv_code_generator::compile_function(
             static_conv2d_with_tiled_loops, flags, opt.iw, opt.ih, opt.ww, opt.wh, opt.batch_size, opt.in_channels, 
             opt.out_channels, opt.stride, opt.dilation, opt.padding, opt.padding_same
             );
@@ -261,6 +108,18 @@ void test_static_all() {
                                     .stride = default_stride, .padding_same = 0, .padding = default_padding, .dilation = default_dilation};
     // compile_and_run(options, "default_im5x5_w3x3");
     test_static_conv2d(options, &conv2d_default_im5x5_w3x3, "default_im5x5_w3x3");
+
+    options = {.iw = 5, .ih = 2, .ww = 2, .wh = 2, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
+                                    .stride = default_stride, .padding_same = 0, .padding = default_padding, .dilation = default_dilation};
+    test_static_conv2d(options, &conv2d_default_im5x2_w2x2, "default_im5x2_w2x2");
+
+    options = {.iw = 10, .ih = 10, .ww = 6, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
+                                    .stride = default_stride, .padding_same = 0, .padding = default_padding, .dilation = default_dilation};
+    test_static_conv2d(options, &conv2d_default_im10x10_w6x3, "default_im10x10_w6x3");
+
+    options = {.iw = 1, .ih = 6, .ww = 1, .wh = 2, .batch_size = 1, .in_channels = 1, .out_channels = 1, 
+                                    .stride = default_stride, .padding_same = 0, .padding = default_padding, .dilation = default_dilation};
+    test_static_conv2d(options, &conv2d_default_im1x6_w1x2, "default_im1x6_w1x2");
 
     // stride
     stride[0] = 2;
@@ -334,6 +193,28 @@ void test_static_all() {
     // compile_and_run(options, "dil2x2_stride2x4_pad5x4_im20x20_w3x3_batch5");
     test_static_conv2d(options, &conv2d_dil2x2_stride2x4_pad5x4_im20x20_w3x3_batch5, "dil2x2_stride2x4_pad5x4_im20x20_w3x3_batch5");
 
+    // in channels, stride, dilation, padding
+    dilation[0] = 2;
+    dilation[1] = 2;
+    stride[0] = 2;
+    stride[1] = 4;
+    padding[0] = 5;
+    padding[1] = 4;
+    options = {.iw = 20, .ih = 20, .ww = 3, .wh = 3, .batch_size = 1, .in_channels = 5, .out_channels = 1, 
+                                    .stride = stride, .padding_same = 0, .padding = padding, .dilation = dilation};
+    test_static_conv2d(options, &conv2d_dil2x2_stride2x4_pad5x4_im20x20_w3x3_inch5, "dil2x2_stride2x4_pad5x4_im20x20_w3x3_inch5");
+
+    // out channels, stride, dilation, padding
+    dilation[0] = 2;
+    dilation[1] = 2;
+    stride[0] = 2;
+    stride[1] = 4;
+    padding[0] = 5;
+    padding[1] = 4;
+    options = {.iw = 20, .ih = 20, .ww = 3, .wh = 3, .batch_size = 1, .in_channels = 1, .out_channels = 6, 
+                                    .stride = stride, .padding_same = 0, .padding = padding, .dilation = dilation};
+    test_static_conv2d(options, &conv2d_dil2x2_stride2x4_pad5x4_im20x20_w3x3_outch6, "dil2x2_stride2x4_pad5x4_im20x20_w3x3_outch6");
+
     // batching, stride, dilation, padding, in channels, out channels
     dilation[0] = 2;
     dilation[1] = 2;
@@ -376,22 +257,5 @@ void test_static_all() {
 
 
 int main() {
-    // test_default_options(default_batch_sz, default_in_channels, default_out_channels);
-    // test_stride(default_batch_sz, default_in_channels, default_out_channels);
-    // test_dilation(default_batch_sz, default_in_channels, default_out_channels);
-    // test_stride_dilation(default_batch_sz, default_in_channels, default_out_channels);
-    // test_padding_arr(default_batch_sz, default_in_channels, default_out_channels);
-    // test_padding_same(default_batch_sz, default_in_channels, default_out_channels);
-    // test_stride_dilation_padding(default_batch_sz, default_in_channels, default_out_channels);
-    // test_dilation_padding_same(default_batch_sz, default_in_channels, default_out_channels);
-    // test_batching_channels(4, default_in_channels, default_out_channels); // batching
-    // test_batching_channels(default_batch_sz, 4, default_out_channels); // in channels
-    // test_batching_channels(2, 4, default_out_channels); // both batches and in channels
-    // test_batching_channels(default_batch_sz, default_in_channels, 3); // out_channels
-    // test_batching_channels(default_in_channels, 3, 4); // both in and out channels
-    // test_batching_channels(5, default_in_channels, 2); // batching and out channels
-    // test_batching_channels(3, 4, 5); // test all
-
     test_static_all();
-
 }

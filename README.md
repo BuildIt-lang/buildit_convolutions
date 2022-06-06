@@ -6,22 +6,14 @@ To generate code for one of the programs in `./samples` run the following comman
 make && ./build/sample1
 ```
 
-Use the following command to compile and run the generated code for `sample1`:
-
-```
-bash run_generated_code.sh sample1
-```
-
-`sample1` in the commands above can be replaced with any other program from the `./samples` directory.
-
 ## Generating code for conv2d and testing
 
 To generate the code for the `conv2d` function run:
 
 ```
-make && ./build/sample3
+make && ./build/sample1
 ```
-The generated code should be in `./generated_code/buildit_conv2d.h`
+The generated code should be in `./generated_code/specialized_test_code.h`
 
 The `./test` directory contains testing code which uses PyTorch. 
 If you don't have libtorch downloaded you can get it with the following command:

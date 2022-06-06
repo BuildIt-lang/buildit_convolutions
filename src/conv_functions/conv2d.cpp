@@ -1,167 +1,4 @@
-#include "builder/dyn_var.h"
-#include "builder/static_var.h"
-#include "conv_functions/conv_types.h"
-#include "conv_functions/runtime.h"
-#include "conv_functions/schedule.h"
-#include "blocks/c_code_generator.h"
 #include "conv_functions/conv2d.h"
-
-using builder::dyn_var;
-using builder::static_var;
-using conv::PaddingT;
-using conv::ConvOptions;
-using conv::ImageT;
-using conv::KernelT; 
-using conv::Schedule;
-using conv::LoopSchedule;
-
-
-ImageT<conv_t> dyn_conv2d(ImageT<conv_t> input, KernelT<conv_t> weight, ConvOptions opt) {
-
-    conv::runtime::conv_assert(input.in_channels == weight.in_channels);
-    conv::runtime::conv_assert(weight.height <= input.height);
-    conv::runtime::conv_assert(weight.width <= input.width);
-
-    
-    dyn_var<int> pad_h = opt.padding.values[0];
-    dyn_var<int> pad_w = opt.padding.values[1];
-    dyn_var<int> ih;
-    dyn_var<int> iw;
-    if (opt.padding.is_same) {
-        // torch does not support padding "same" with stride other than 1
-        conv::runtime::conv_assert(opt.stride[0] == 1 && opt.stride[1] == 1);
-        // calculate padding such that the output is the same shape as the input
-        ih = input.height * opt.stride[0] - opt.stride[0] + opt.dilation[0] * (weight.height - 1) + 1;
-        iw = input.width * opt.stride[1] - opt.stride[1] + opt.dilation[1] * (weight.width - 1) + 1;
-        pad_h = (ih - input.height) / 2;
-        pad_w = (iw - input.width) / 2;
-    } else {
-        ih = input.height + 2 * pad_h;
-        iw = input.width + 2 * pad_w;
-    }
-
-    ImageT<conv_t> output;
-    output.height = (ih - opt.dilation[0] * (weight.height - 1) - 1) / opt.stride[0] + 1;
-    output.width = (iw - opt.dilation[1] * (weight.width - 1) - 1) / opt.stride[1] + 1;
-    output.in_channels = weight.out_channels;
-    output.batch_size = input.batch_size;
-    dyn_var<int> size = output.width * output.height * output.batch_size * output.in_channels;
-    output.data = conv::runtime::conv_calloc(size, (int)sizeof(conv_t));
-    dyn_var<int> out_idx;
-    dyn_var<int> in_idx;
-    dyn_var<int> weight_idx;
-    builder::annotate("Comment: looping over batches");
-    for (dyn_var<int> bid = 0; bid < output.batch_size; bid = bid + 1) {
-        builder::annotate("Comment: looping over out channels");
-        for (dyn_var<int> out_ch = 0; out_ch < weight.out_channels; out_ch = out_ch + 1) {
-            builder::annotate("Comment: looping over in channels");
-            for (dyn_var<int> in_ch = 0; in_ch < input.in_channels; in_ch = in_ch + 1) {
-                builder::annotate("Comment: looping over the output");
-                for (dyn_var<int> h = 0; h < output.height; h = h + 1) {
-                    for (dyn_var<int> w = 0; w < output.width; w = w + 1) {
-                        out_idx =  bid * output.in_channels * output.height * output.width + out_ch * output.width * output.height + h * output.width + w;
-                        // output.data[out_idx] = 0;
-                        builder::annotate("Comment: looping over the kernel");
-                        for (dyn_var<int> i = 0; i < weight.height; i = i + 1){
-                            for (dyn_var<int> j = 0; j < weight.width; j = j + 1) {
-                        
-                                dyn_var<int> im_i = h * opt.stride[0] + i * opt.dilation[0];
-                                dyn_var<int> im_j = w * opt.stride[1] + j * opt.dilation[1];
-                                dyn_var<int> img_val;
-                                if (im_i < pad_h || im_j < pad_w || im_i >= input.height + pad_h || im_j >= input.width + pad_w) {
-                                    img_val = 0;
-                                } else {
-                                    img_val = input.data[bid * input.in_channels * input.width * input.height + in_ch * input.width * input.height + (im_i - pad_h) * input.width + (im_j - pad_w)];
-                                }
-                                weight_idx = out_ch * weight.in_channels * weight.width * weight.height + in_ch * weight.width * weight.height + i * weight.width + j;
-                                output.data[out_idx] = output.data[out_idx] + img_val * weight.data[weight_idx];
-                            }
-                        }
-                        // output.print();
-                    }
-                }
-            }
-        }
-    }
-    return output;
-}
-
-ImageT<conv_t> static_conv2d(dyn_var<conv_t*> inp_data, dyn_var<conv_t*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
-                    int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
-                    int* padding, int padding_same) {
-
-    conv::runtime::conv_assert(wh <= orig_ih);
-    conv::runtime::conv_assert(ww <= orig_iw);
-
-    static_var<int> pad_h = padding[0];
-    static_var<int> pad_w = padding[1];
-    static_var<int> ih;
-    static_var<int> iw;
-    if (padding_same == 1) {
-        // torch does not support padding "same" with stride other than 1
-        conv::runtime::conv_assert(stride[0] == 1 && stride[1] == 1);
-        // calculate padding such that the output is the same shape as the input
-        ih = orig_ih * stride[0] - stride[0] + dilation[0] * (wh - 1) + 1;
-        iw = orig_iw * stride[1] - stride[1] + dilation[1] * (ww - 1) + 1;
-        pad_h = (ih - orig_ih) / 2;
-        pad_w = (iw - orig_iw) / 2;
-    } else {
-        ih = orig_ih + 2 * pad_h;
-        iw = orig_iw + 2 * pad_w;
-    }
-
-    static_var<int> oh = (ih - dilation[0] * (wh - 1) - 1) / stride[0] + 1;
-    static_var<int> ow = (iw - dilation[1] * (ww - 1) - 1) / stride[1] + 1;
-
-    ImageT<conv_t> output;
-    output.height = oh;
-    output.width = ow;
-    output.in_channels = out_channels;
-    output.batch_size = batch_size;
-    static_var<int> size = ow * oh * batch_size * out_channels;
-    output.data = conv::runtime::conv_calloc(size, (int)sizeof(conv_t));
-    builder::annotate("Comment: looping over batches | omp parallel for collapse(3)");
-    for (dyn_var<int> bid = 0; bid < batch_size; bid = bid + 1) {
-        builder::annotate("Comment: looping over out channels");
-        for (dyn_var<int> out_ch = 0; out_ch < out_channels; out_ch = out_ch + 1) {
-            builder::annotate("Comment: looping over in channels");
-            for (dyn_var<int> in_ch = 0; in_ch < in_channels; in_ch = in_ch + 1) {
-                dyn_var<int> out_idx;
-                dyn_var<int> weight_idx;
-                dyn_var<int> counter = 0;
-                builder::annotate("Comment: looping over the output");
-                for (dyn_var<int> h = 0; h < output.height; h = h + 1) {
-                    for (dyn_var<int> w = 0; w < output.width; w = w + 1) {
-                        out_idx =  bid * output.in_channels * output.height * output.width + out_ch * output.width * output.height + h * output.width + w;
-                        builder::annotate("Comment: looping over the kernel");
-                        for (dyn_var<int> i = 0; i < wh; i = i + 1) {
-                            dyn_var<int> im_i = h * stride[0] + i * dilation[0];
-                            if (im_i < pad_h) continue;
-                            else if (im_i < orig_ih + pad_h) {
-                                for (dyn_var<int> j = 0; j < ww; j = j + 1) {
-                                    dyn_var<int> im_j = w * stride[1] + j * dilation[1];
-                                    if (im_j < pad_w) continue;
-                                    else if (im_j < orig_iw + pad_w) {
-                                        dyn_var<int> img_val = inp_data[bid * in_channels * orig_iw * orig_ih + in_ch * orig_iw * orig_ih + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
-                                        weight_idx = out_ch * in_channels * ww * wh + in_ch * ww * wh + i * ww + j;
-                                        output.data[out_idx] = output.data[out_idx] + img_val * weight_data[weight_idx];
-                                        counter = counter + 1;
-                                    }
-                                    else break;
-                                }
-                            }
-                            else break;
-                        }
-                        
-                    }
-                }
-                output.mult_cnt = counter; // should be safe to write in parallel since it's the same number for all iters
-            }
-        } 
-    }
-    output.mult_cnt = output.mult_cnt * batch_size * in_channels * out_channels;
-    return output;
-}
 
 /**
  * Splits the image row/column ranges into 6 regions based on the location of the kernel.
@@ -304,8 +141,8 @@ dyn_var<int> kernel_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_d
 }
 
 /**
- * Same as static_conv2d but splits the image loops based on
- * kernel location. Currently works only for padding value 0.
+ * Splits the image loops based on the position of the kernel wrt the image.
+ * Currently works only for padding value 0.
  */
 ImageT<conv_t> static_conv2d_with_tiled_loops(dyn_var<conv_t*> inp_data, dyn_var<conv_t*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
@@ -400,6 +237,10 @@ ImageT<conv_t> static_conv2d_with_tiled_loops(dyn_var<conv_t*> inp_data, dyn_var
     return output;
 }
 
+/**
+ * Updates the value at the current index of the image.
+ */
+
 void update(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data,
             dyn_var<int>** curr_indices, int* stride, int* dilation, int orig_inch_h_w, int orig_h_w,
             int oh_times_ow, int inch_oh_ow, int ow, int ker_inch_w_h, int ker_w_h,
@@ -421,6 +262,11 @@ void update(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<c
     output_data[out_idx] = output_data[out_idx] + img_val * weight_data[weight_idx];
 }
 
+/**
+ * If this is the innermost loop, it calculates and updates the final image value at the current index.
+ * Otherwise, recursively calls the next loop.
+ * 
+ */
 void get_current_loop(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
                     dyn_var<int>** curr_indices,
                     Schedule s, LoopSchedule loop, int curr_loop, std::string annotation, 
@@ -438,6 +284,10 @@ void get_current_loop(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data,
     }
 }
 
+
+/**
+ * A recursive function that returns all the loops in the order given by the schedule.
+ */
 void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
                 dyn_var<int>** curr_indices, Schedule s, int curr_loop, int ww, 
                 int wh, int* stride, int* dilation, int orig_inch_h_w, int orig_h_w, int oh_times_ow, 
@@ -601,34 +451,5 @@ ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<
     }
     return output;
 }
-
-// void get_loop_bounds(int* bounds, int bound1, int bound2, int mul1, int mul2, int orig_sz, int pad_sz) {
-//     for (static_var<int> i = 0; i < bound1; i = i + 1) {
-//         bounds[i * 2] = 0;
-//         bounds[i * 2 + 1] = -1;
-//         static_var<int> done = 0;
-//         for (static_var<int> j = 0; j < bound2; j = j + 1) {
-//             // img * stride, ker * dilation
-//             int im_i = j * mul1 + i * mul2;
-//             if (im_i < pad_sz) continue; 
-//             else if (im_i < orig_sz + pad_sz) {
-//                 if (!done) {
-//                     bounds[i * 2] = j;
-//                     done = 1;
-//                 }
-//             } else {
-//                 bounds[i * 2 + 1] = j;
-//                 return;
-//             };
-//         }
-//         if (done) {
-//             bounds[i * 2 + 1] = bound2;
-//         }
-//     }
-// }
-
-
-
-
 
 

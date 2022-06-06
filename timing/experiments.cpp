@@ -115,7 +115,7 @@ void run() {
     }
     // std::string flags = "";
     // for (int i = 0; i < n_runs; i++) {
-    //     auto fptr = (GeneratedFunction)pipeline::commented_code_generator::compile_function(
+    //     auto fptr = (GeneratedFunction)pipeline::conv_code_generator::compile_function(
     //         static_conv2d_with_tiled_loops, flags, iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], 
     //         out_channels[i], stride[i], dilation[i], padding[i], padding_same[i]
     //         );
