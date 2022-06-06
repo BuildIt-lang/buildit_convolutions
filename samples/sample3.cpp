@@ -5,7 +5,7 @@
 #include "builder/dyn_var.h"
 #include <iostream>
 
-#include "pipeline/comment_generator.h"
+#include "pipeline/conv_code_generator.h"
 using pipeline::conv_code_generator;
 
 // Include the BuildIt types

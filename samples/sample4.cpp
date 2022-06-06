@@ -4,7 +4,7 @@
 #include "blocks/rce.h"
 #include "conv_functions/conv2d.h"
 #include "pipeline/conv.h"
-#include "pipeline/comment_generator.h"
+#include "pipeline/conv_code_generator.h"
 
 using builder::dyn_var;
 using builder::static_var;
@@ -70,6 +70,8 @@ int main() {
         int ow = (iw[i] - dilation[i][1] * (ww[i] - 1) - 1) / stride[i][1] + 1;
         ix.bound = ow;
         iy.bound = oh;
+
+
         // std::cout << ow << " " << oh << std::endl;
         
         if (i == 10) {

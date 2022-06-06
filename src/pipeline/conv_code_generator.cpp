@@ -1,5 +1,5 @@
 #include "blocks/c_code_generator.h"
-#include "pipeline/comment_generator.h"
+#include "pipeline/conv_code_generator.h"
 #include <string.h>
 
 using namespace block;

@@ -4,7 +4,7 @@
 #include <assert.h>
 #include "runtime_functions.h"
 #include "runtime_types.h"
-#include "pipeline/comment_generator.h"
+#include "pipeline/conv_code_generator.h"
 #include "conv_functions/conv2d.h"
 #include "specialized_test_code.h"
 

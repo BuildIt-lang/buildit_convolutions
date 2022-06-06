@@ -10,7 +10,7 @@
 #include "blocks/rce.h"
 #include "conv_functions/conv2d.h"
 #include "pipeline/conv.h"
-#include "pipeline/comment_generator.h"
+#include "pipeline/conv_code_generator.h"
 #include "specialized_timing_code.h"
 
 using namespace torch;
