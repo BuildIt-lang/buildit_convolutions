@@ -37,22 +37,22 @@ ImageT<conv_t> static_conv2d_with_tiled_loops(dyn_var<conv_t*> inp_data, dyn_var
 
 ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<conv_t*> weight_data, int* orig_img_dims, int* ker_dims, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
-                    int* padding, int padding_same, Schedule s, int ndims, int* out_dims);
+                    int* padding, int padding_same, Schedule s, int ndims, int* out_dims, int* pad_dims, int* padded_img_dims);
 
 
 void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
                 dyn_var<int>** curr_indices, Schedule s, int curr_loop, int* stride, int* dilation, int* out_dims, 
-                int* pad, int* orig, static_var<int>* r, int* img_bounds, int* ker_dims, int in_channels, int out_channels);
+                int* pad, int* orig, static_var<int>* r, int* img_bounds, int* ker_dims, int in_channels, int out_channels, int ndims);
 
 void get_current_loop(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
                     dyn_var<int>** curr_indices,
                     Schedule s, LoopSchedule loop, int curr_loop, std::string annotation, 
                     int* stride, int* dilation, int* out_dims, int* pad, 
-                    int* orig, static_var<int>* r, int* img_bounds, int* ker_dims, int in_channels, int out_channels);
+                    int* orig, static_var<int>* r, int* img_bounds, int* ker_dims, int in_channels, int out_channels, int ndims);
 
 void update(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data,
             dyn_var<int>** curr_indices, int* stride, int* dilation, int* out_dims, 
-            int* orig_img_dims, int* ker_dims, int* pad, int in_channels, int out_channels);
+            int* orig_img_dims, int* ker_dims, int* pad, int in_channels, int out_channels, int ndims);
 
 void get_region_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
 dyn_var<int>** curr_indices, Schedule s,
