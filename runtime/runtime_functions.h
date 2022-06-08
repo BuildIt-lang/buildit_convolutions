@@ -16,6 +16,7 @@ namespace conv_runtime {
         free(ptr);
     }
 
+
     // timer from graphit
     static struct timeval start_time_;
     static struct timeval elapsed_time_;

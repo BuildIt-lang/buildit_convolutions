@@ -25,10 +25,10 @@ void compare(Tensor expected, conv_runtime::ImageT<conv_t> result, string test_n
     std::cout << "Running test: " << test_name << " " << test_details << std::endl;
     assert(result.batch_size == expected.size(0));
     assert(result.in_channels == expected.size(1));
-    assert (result.height == expected.size(2));
-    assert (result.width == expected.size(3));
-    int w = result.width;
-    int h = result.height;
+    assert (result.dims[0] == expected.size(2));
+    assert (result.dims[1] == expected.size(3));
+    int w = result.dims[1];
+    int h = result.dims[0];
     conv_t* expected_arr = expected.data_ptr<conv_t>();
     for (int i = 0; i < h; i++) {
         for (int j = 0; j < w; j++) {

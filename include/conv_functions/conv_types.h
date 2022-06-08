@@ -30,8 +30,8 @@ struct ImageT: public dyn_var<builder::name<image_t_name, T>> {
 
     dyn_var<int> batch_size = as_member_of(this, "batch_size");
     dyn_var<int> in_channels = as_member_of(this, "in_channels");
-    dyn_var<int> width = as_member_of(this, "width");
-    dyn_var<int> height = as_member_of(this, "height");
+    dyn_var<int> ndims = as_member_of(this, "ndims");
+    dyn_var<int*> dims = as_member_of(this, "dims");
     dyn_var<T*> data = as_member_of(this, "data");
     dyn_var<void(void)> print = as_member_of(this, "print");
     dyn_var<int> mult_cnt = as_member_of(this, "mult_cnt");

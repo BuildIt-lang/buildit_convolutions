@@ -71,6 +71,10 @@ int main() {
         ix.bound = ow;
         iy.bound = oh;
 
+        int ker_dims[] = {wh[i], ww[i]};
+        int img_dims[] = {ih[i], iw[i]};
+        int out_dims[2];
+
 
         // std::cout << ow << " " << oh << std::endl;
         
@@ -80,7 +84,7 @@ int main() {
             in_ch.tile(dims, 2, subloops, 10);
             LoopSchedule all_loops[8] = {out_ch, n, ky, subloops[0], iy, subloops[1], kx, ix};
             Schedule s = Schedule(all_loops, 8);
-            auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s);
+            auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], img_dims, ker_dims, batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s, 2, out_dims);
             block::eliminate_redundant_vars(ast);
             pipeline::conv_code_generator::generate_code(ast, code_file, 0);
             code_file << "\n" << std::endl;
@@ -90,7 +94,7 @@ int main() {
             kx.tile(dims, 2, subloops, 10);
             LoopSchedule all_loops[8] = {out_ch, n, ky, in_ch, iy, subloops[0], ix, subloops[1]};
             Schedule s = Schedule(all_loops, 8);
-            auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s);
+            auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], img_dims, ker_dims, batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s, 2, out_dims);
             block::eliminate_redundant_vars(ast);
             pipeline::conv_code_generator::generate_code(ast, code_file, 0);
             code_file << "\n" << std::endl;
@@ -100,7 +104,7 @@ int main() {
             ix.tile(dims, 2, subloops, 10);
             LoopSchedule all_loops[8] = {out_ch, n, ky, in_ch, subloops[0], iy, subloops[1], kx};
             Schedule s = Schedule(all_loops, 8);
-            auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s);
+            auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], img_dims, ker_dims, batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s, 2, out_dims);
             block::eliminate_redundant_vars(ast);
             pipeline::conv_code_generator::generate_code(ast, code_file, 0);
             code_file << "\n" << std::endl;
@@ -111,7 +115,7 @@ int main() {
             ix.tile(dims, 2, subloops, 11);
             LoopSchedule all_loops[8] = {out_ch, ky, in_ch, n, subloops[0], iy, kx, subloops[1]};
             Schedule s = Schedule(all_loops, 8);
-            auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s);
+            auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], img_dims, ker_dims, batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s, 2, out_dims);
             block::eliminate_redundant_vars(ast);
             pipeline::conv_code_generator::generate_code(ast, code_file, 0);
             code_file << "\n" << std::endl;
@@ -122,7 +126,7 @@ int main() {
             iy.tile(dims, 3, subloops, 8);
             LoopSchedule all_loops[9] = {out_ch, n, ky, in_ch, subloops[0], ix, subloops[1], kx, subloops[2]};
             Schedule s = Schedule(all_loops, 9);
-            auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s);
+            auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], img_dims, ker_dims, batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s, 2, out_dims);
             block::eliminate_redundant_vars(ast);
             pipeline::conv_code_generator::generate_code(ast, code_file, 0);
             code_file << "\n" << std::endl;
@@ -133,14 +137,14 @@ int main() {
             iy.tile(dims, 2, subloops, 6);
             LoopSchedule all_loops[8] = {out_ch, n, ky, in_ch, ix, subloops[0], kx, subloops[1]};
             Schedule s = Schedule(all_loops, 8);
-            auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s);
+            auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], img_dims, ker_dims, batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s, 2, out_dims);
             block::eliminate_redundant_vars(ast);
             pipeline::conv_code_generator::generate_code(ast, code_file, 0);
             code_file << "\n" << std::endl;
         } else {
             LoopSchedule all_loops[7] = {out_ch, n, ky, in_ch, iy, ix, kx};
             Schedule s = Schedule(all_loops, 7);
-            auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], iw[i], ih[i], ww[i], wh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s);
+            auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling, func_name[i], img_dims, ker_dims, batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s, 2, out_dims);
             block::eliminate_redundant_vars(ast);
             pipeline::conv_code_generator::generate_code(ast, code_file, 0);
             code_file << "\n" << std::endl;

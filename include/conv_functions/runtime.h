@@ -12,6 +12,7 @@ namespace runtime {
     extern dyn_var<int*(int)> conv_malloc;
     extern dyn_var<int*(int, int)> conv_calloc;
     extern dyn_var<void(int*)> conv_free;
+    extern dyn_var<int*(int)> int_malloc;
 
     extern dyn_var<void (void)> start_timer;
     extern dyn_var<float (void)> stop_timer;

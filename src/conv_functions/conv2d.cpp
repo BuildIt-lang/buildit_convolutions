@@ -155,6 +155,7 @@ ImageT<conv_t> static_conv2d_with_tiled_loops(dyn_var<conv_t*> inp_data, dyn_var
     static_var<int> pad_w = padding[1];
     static_var<int> ih;
     static_var<int> iw;
+    
     if (padding_same == 1) {
         // torch does not support padding "same" with stride other than 1
         conv::runtime::conv_assert(stride[0] == 1 && stride[1] == 1);
@@ -179,8 +180,10 @@ ImageT<conv_t> static_conv2d_with_tiled_loops(dyn_var<conv_t*> inp_data, dyn_var
     static_var<int> ker_inch_w_h = in_channels * ker_w_h;
 
     ImageT<conv_t> output;
-    output.height = oh;
-    output.width = ow;
+    output.dims = conv::runtime::int_malloc(2 * (int)sizeof(int));
+    output.dims[0] = oh;
+    output.dims[1] = ow;
+
     output.in_channels = out_channels;
     output.batch_size = batch_size;
     static_var<int> size = ow * oh * batch_size * out_channels;
@@ -215,7 +218,7 @@ ImageT<conv_t> static_conv2d_with_tiled_loops(dyn_var<conv_t*> inp_data, dyn_var
                                 int w_hi = img_bounds_w[r2 * 2 + 1];
                                 if (w_lo <= w_hi) {
                                     for (dyn_var<int> w = w_lo; w < w_hi; w = w + 1) {
-                                        out_idx =  bid * inch_oh_ow + out_ch * oh_times_ow + h * output.width + w;
+                                        out_idx =  bid * inch_oh_ow + out_ch * oh_times_ow + h * ow + w;
                                         dyn_var<int> w_stride = w * stride[1];
                                         dyn_var<int> h_stride = h * stride[0];
                                         // if region = 2 the dilated kernel completely fits inside the orig image
@@ -242,9 +245,8 @@ ImageT<conv_t> static_conv2d_with_tiled_loops(dyn_var<conv_t*> inp_data, dyn_var
  */
 
 void update(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data,
-            dyn_var<int>** curr_indices, int* stride, int* dilation, int orig_inch_h_w, int orig_h_w,
-            int oh_times_ow, int inch_oh_ow, int ow, int ker_inch_w_h, int ker_w_h,
-            int orig_iw, int ww, int pad_h, int pad_w) {
+            dyn_var<int>** curr_indices, int* stride, int* dilation, int* out_dims, 
+            int* orig_img_dims, int* ker_dims, int* pad, int in_channels, int out_channels) {
     dyn_var<int> bid = *(curr_indices[0]);
     dyn_var<int> in_ch = *(curr_indices[1]);
     dyn_var<int> out_ch = *(curr_indices[2]);
@@ -252,13 +254,13 @@ void update(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<c
     dyn_var<int> w = *(curr_indices[4]);
     dyn_var<int> i = *(curr_indices[5]);
     dyn_var<int> j = *(curr_indices[6]);
-    dyn_var<int> out_idx = bid * inch_oh_ow + out_ch * oh_times_ow + h * ow + w;
+    dyn_var<int> out_idx = bid * out_channels * out_dims[0] * out_dims[1] + out_ch * out_dims[0] * out_dims[1] + h * out_dims[1] + w;
     dyn_var<int> im_i = h * stride[0] + i * dilation[0];
     dyn_var<int> im_j = w * stride[1] + j * dilation[1];
-    dyn_var<int> inner_img_idx = bid * orig_inch_h_w + in_ch * orig_h_w;
-    dyn_var<int> inner_ker_idx = out_ch * ker_inch_w_h + in_ch * ker_w_h;
-    dyn_var<int> img_val = input_data[inner_img_idx + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
-    dyn_var<int> weight_idx = inner_ker_idx + i * ww + j;
+    dyn_var<int> inner_img_idx = bid * in_channels * orig_img_dims[0] * orig_img_dims[1] + in_ch * orig_img_dims[0] * orig_img_dims[1];
+    dyn_var<int> inner_ker_idx = out_ch * in_channels * ker_dims[0] * ker_dims[1] + in_ch * ker_dims[0] * ker_dims[1];
+    dyn_var<int> img_val = input_data[inner_img_idx + (im_i - pad[0]) * orig_img_dims[1] + (im_j - pad[1])];
+    dyn_var<int> weight_idx = inner_ker_idx + i * ker_dims[1] + j;
     output_data[out_idx] = output_data[out_idx] + img_val * weight_data[weight_idx];
 }
 
@@ -270,17 +272,16 @@ void update(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<c
 void get_current_loop(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
                     dyn_var<int>** curr_indices,
                     Schedule s, LoopSchedule loop, int curr_loop, std::string annotation, 
-                    int ww, int wh, int* stride, int* dilation, int orig_inch_h_w, int orig_h_w, int oh_times_ow, int inch_oh_ow, int ow, 
-                    int ker_inch_w_h, int ker_w_h, int oh, bool* cond, int* pad, int* orig, int* r, int** img_bounds) {
+                    int* stride, int* dilation, int* out_dims, bool* cond, int* pad, int* orig_img_dims, int* r, int** img_bounds, int* ker_dims, 
+                    int in_channels, int out_channels) {
     if (curr_loop == s.n_loops - 1) {
         // innermost loop
-        update(input_data, weight_data, output_data, curr_indices, stride, dilation, orig_inch_h_w, orig_h_w,
-            oh_times_ow, inch_oh_ow, ow, ker_inch_w_h, ker_w_h, orig[1], ww, pad[0], pad[1]);
+        update(input_data, weight_data, output_data, curr_indices, stride, dilation, out_dims, orig_img_dims, ker_dims, pad, in_channels, out_channels);
     } else {
         // go to the next loop
         get_loops(input_data, weight_data, output_data, 
-                    curr_indices,  s, curr_loop + 1, ww, wh, stride, dilation,
-                    orig_inch_h_w, orig_h_w, oh_times_ow, inch_oh_ow, ow, ker_inch_w_h, ker_w_h, oh, cond, pad, orig, r, img_bounds);
+                    curr_indices,  s, curr_loop + 1, stride, dilation, out_dims, 
+                    cond, pad, orig_img_dims, r, img_bounds, ker_dims, in_channels, out_channels);
     }
 }
 
@@ -289,9 +290,9 @@ void get_current_loop(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data,
  * A recursive function that returns all the loops in the order given by the schedule.
  */
 void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
-                dyn_var<int>** curr_indices, Schedule s, int curr_loop, int ww, 
-                int wh, int* stride, int* dilation, int orig_inch_h_w, int orig_h_w, int oh_times_ow, 
-                int inch_oh_ow, int ow, int ker_inch_w_h, int ker_w_h, int oh, bool* cond, int* pad, int* orig, int* r, int** img_bounds) {
+                dyn_var<int>** curr_indices, Schedule s, int curr_loop, 
+                int* stride, int* dilation, int* out_dims, bool* cond, int* pad, int* orig, int* r, int** img_bounds, int* ker_dims,
+                int in_channels, int out_channels) {
     assert(curr_loop < s.n_loops);
     LoopSchedule loop = s.loops[curr_loop];
     std::string loop_names[] = {
@@ -322,20 +323,20 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
                 dyn_var<int> im_idx = *(curr_indices[3 + loop.dim]) * stride[loop.dim] + *(curr_indices[loop_type + loop.dim]) * dilation[loop.dim];
                 if (im_idx < pad[loop.dim]) continue;
                 else if (im_idx < orig[loop.dim] + pad[loop.dim]) {
-                     get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, ww, wh, stride, dilation,
-                     orig_inch_h_w, orig_h_w, oh_times_ow, inch_oh_ow, ow, ker_inch_w_h, ker_w_h, oh, cond, pad, orig, r, img_bounds);
+                     get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims,
+                     cond, pad, orig, r, img_bounds, ker_dims, in_channels, out_channels);
                 }
                 else break;
             } else {
-                 get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, ww, wh, stride, dilation,
-                    orig_inch_h_w, orig_h_w, oh_times_ow, inch_oh_ow, ow, ker_inch_w_h, ker_w_h, oh, cond, pad, orig, r, img_bounds);
+                 get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims, 
+                    cond, pad, orig, r, img_bounds, ker_dims, in_channels, out_channels);
             }
         }
     } else if (loop.type == LoopSchedule::loop_type::IMG) {
         if (loop.tiled && !loop.last && cond[loop.dim]) {
             // if we are in one of the end regions and this is not the last tiled loop, skip the current loop (no tiling in end regions)
-            get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, ww, wh, stride, dilation,
-                    orig_inch_h_w, orig_h_w, oh_times_ow, inch_oh_ow, ow, ker_inch_w_h, ker_w_h, oh, cond, pad, orig, r, img_bounds);
+            get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims, 
+                    cond, pad, orig, r, img_bounds, ker_dims, in_channels, out_channels);
         
         } else {
             // if it's the innermost tiled loop and it's the center region use the adjusted bounds for tiling
@@ -351,12 +352,12 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
                     dyn_var<int> im_i = *(curr_indices[loop_type + loop.dim]) * stride[loop.dim] + *(curr_indices[5 + loop.dim]) * dilation[loop.dim];
                     if (im_i < pad[loop.dim]) continue; 
                     else if (im_i < orig[loop.dim] + pad[loop.dim]) {
-                        get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, ww, wh, stride, dilation,
-                        orig_inch_h_w, orig_h_w, oh_times_ow, inch_oh_ow, ow, ker_inch_w_h, ker_w_h, oh, cond, pad, orig, r, img_bounds);
+                        get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims,
+                        cond, pad, orig, r, img_bounds, ker_dims, in_channels, out_channels);
                     } else break;
                 } else {
-                    get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, ww, wh, stride, dilation,
-                        orig_inch_h_w, orig_h_w, oh_times_ow, inch_oh_ow, ow, ker_inch_w_h, ker_w_h, oh, cond, pad, orig, r, img_bounds);
+                    get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims,
+                        cond, pad, orig, r, img_bounds, ker_dims, in_channels, out_channels);
                 }
             }
         }
@@ -365,52 +366,39 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
         for (dyn_var<int> idx = 0; idx < loop.bound; idx = idx + loop.stride) {
             dyn_var<int> total = *(curr_indices[loop_type]) + idx;
             curr_indices[loop_type] = total.addr();
-            get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, ww, wh, stride, dilation,
-                        orig_inch_h_w, orig_h_w, oh_times_ow, inch_oh_ow, ow, ker_inch_w_h, ker_w_h, oh, cond, pad, orig, r, img_bounds);
+            get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims,
+                        cond, pad, orig, r, img_bounds, ker_dims, in_channels, out_channels);
         }
     }
 }
 
-ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<conv_t*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
+ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<conv_t*> weight_data, int* orig_img_dims, int* ker_dims, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
-                    int* padding, int padding_same, Schedule s) {
+                    int* padding, int padding_same, Schedule s, int ndims, int* out_dims) {
 
-    conv::runtime::conv_assert(wh <= orig_ih);
-    conv::runtime::conv_assert(ww <= orig_iw);
-
-    static_var<int> pad_h = padding[0];
-    static_var<int> pad_w = padding[1];
-    static_var<int> ih;
-    static_var<int> iw;
-    if (padding_same == 1) {
-        // torch does not support padding "same" with stride other than 1
-        conv::runtime::conv_assert(stride[0] == 1 && stride[1] == 1);
-        // calculate padding such that the output is the same shape as the input
-        ih = orig_ih * stride[0] - stride[0] + dilation[0] * (wh - 1) + 1;
-        iw = orig_iw * stride[1] - stride[1] + dilation[1] * (ww - 1) + 1;
-        pad_h = (ih - orig_ih) / 2;
-        pad_w = (iw - orig_iw) / 2;
-    } else {
-        ih = orig_ih + 2 * pad_h;
-        iw = orig_iw + 2 * pad_w;
+    int pad[2];
+    int img_dims[2];
+    ImageT<conv_t> output;
+    output.dims = conv::runtime::int_malloc(ndims * (int)sizeof(int));
+    static_var<int> size = batch_size * out_channels;
+    for (static_var<int> i = 0; i < ndims; i = i + 1) {
+        if (padding_same == 1) {
+            // torch does not support padding "same" with stride other than 1
+            conv::runtime::conv_assert(stride[i] == 1);
+            // calculate padding such that the output is the same shape as the input
+            img_dims[i] = orig_img_dims[i] * stride[i] - stride[i] + dilation[i] * (ker_dims[i] - 1) + 1;
+            pad[i] = (img_dims[i] - orig_img_dims[i]) / 2;
+        } else {
+            pad[i] = padding[i];
+            img_dims[i] = orig_img_dims[i] + 2 * pad[i];
+        }
+        out_dims[i] = (img_dims[i] - dilation[i] * (ker_dims[i] - 1) - 1) / stride[i] + 1;
+        size = size * out_dims[i];
+        output.dims[i] = out_dims[i];
     }
 
-    static_var<int> oh = (ih - dilation[0] * (wh - 1) - 1) / stride[0] + 1;
-    static_var<int> ow = (iw - dilation[1] * (ww - 1) - 1) / stride[1] + 1;
-    static_var<int> oh_times_ow = oh * ow;
-    static_var<int> inch_oh_ow = out_channels * oh_times_ow;
-
-    static_var<int> orig_h_w = orig_ih * orig_iw;
-    static_var<int> orig_inch_h_w = in_channels * orig_h_w;
-    static_var<int> ker_w_h = ww * wh;
-    static_var<int> ker_inch_w_h = in_channels * ker_w_h;
-
-    ImageT<conv_t> output;
-    output.height = oh;
-    output.width = ow;
     output.in_channels = out_channels;
     output.batch_size = batch_size;
-    static_var<int> size = ow * oh * batch_size * out_channels;
     output.data = conv::runtime::conv_calloc(size, (int)sizeof(conv_t));
 
     // getting image bounds with padding
@@ -418,9 +406,8 @@ ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<
     int ker_bounds_h[12];
     int img_bounds_w[12];
     int ker_bounds_w[12];
-    get_bounds(img_bounds_h, ker_bounds_h, oh, wh, pad_h, stride[0], dilation[0], orig_ih, ih);
-    get_bounds(img_bounds_w, ker_bounds_w, ow, ww, pad_w, stride[1], dilation[1], orig_iw, iw);
-    // std::cout << img_bounds_w[4] << " " << img_bounds_w[5] << std::endl;
+    get_bounds(img_bounds_h, ker_bounds_h, out_dims[0], ker_dims[0], pad[0], stride[0], dilation[0], orig_img_dims[0], img_dims[0]);
+    get_bounds(img_bounds_w, ker_bounds_w, out_dims[1], ker_dims[1], pad[1], stride[1], dilation[1], orig_img_dims[1], img_dims[1]);
 
     // TODO: generalize this
     dyn_var<int>* curr_indices[20];
@@ -439,12 +426,10 @@ ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<
                     bool w_conditions = r1 != 2;
                     bool h_conditions = r2 != 2;
                     bool cond[] = {w_conditions, h_conditions};
-                    int pad[] = {pad_h, pad_w};
-                    int orig[] = {orig_ih, orig_iw};
                     int r[] = {r1, r2};
                     int* img_bounds[] = {img_bounds_h, img_bounds_w};
-                    get_loops(inp_data, weight_data, output.data, curr_indices, s, 0, ww, wh, stride, dilation, 
-                    orig_inch_h_w, orig_h_w, oh_times_ow, inch_oh_ow, ow, ker_inch_w_h, ker_w_h, oh, cond, pad, orig, r, img_bounds);
+                    get_loops(inp_data, weight_data, output.data, curr_indices, s, 0, stride, dilation, out_dims, 
+                    cond, pad, orig_img_dims, r, img_bounds, ker_dims, in_channels, out_channels);
                 }
             }
         } 
