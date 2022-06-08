@@ -42,14 +42,19 @@ ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<
 
 void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
                 dyn_var<int>** curr_indices, Schedule s, int curr_loop, int* stride, int* dilation, int* out_dims, 
-                bool* cond, int* pad, int* orig, int* r, int** img_bounds, int* ker_dims, int in_channels, int out_channels);
+                int* pad, int* orig, static_var<int>* r, int* img_bounds, int* ker_dims, int in_channels, int out_channels);
 
 void get_current_loop(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
                     dyn_var<int>** curr_indices,
                     Schedule s, LoopSchedule loop, int curr_loop, std::string annotation, 
-                    int* stride, int* dilation, int* out_dims, bool* cond, int* pad, 
-                    int* orig, int* r, int** img_bounds, int* ker_dims, int in_channels, int out_channels);
+                    int* stride, int* dilation, int* out_dims, int* pad, 
+                    int* orig, static_var<int>* r, int* img_bounds, int* ker_dims, int in_channels, int out_channels);
 
 void update(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data,
             dyn_var<int>** curr_indices, int* stride, int* dilation, int* out_dims, 
             int* orig_img_dims, int* ker_dims, int* pad, int in_channels, int out_channels);
+
+void get_region_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
+dyn_var<int>** curr_indices, Schedule s,
+int* stride, int* dilation, int* out_dims, int* pad, int* orig_img_dims, static_var<int>* regions, int* img_bounds, int* ker_dims,
+int in_channels, int out_channels, int curr_dim, int ndims); 
