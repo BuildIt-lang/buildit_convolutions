@@ -45,7 +45,7 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
                 int* pad, int* orig, static_var<int>* r, int* img_bounds, int* ker_dims, int in_channels, int out_channels, int ndims);
 
 void get_current_loop(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
-                    dyn_var<int>** curr_indices,
+                    dyn_var<int>** curr_indices, 
                     Schedule s, LoopSchedule loop, int curr_loop, std::string annotation, 
                     int* stride, int* dilation, int* out_dims, int* pad, 
                     int* orig, static_var<int>* r, int* img_bounds, int* ker_dims, int in_channels, int out_channels, int ndims);
@@ -55,6 +55,6 @@ void update(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<c
             int* orig_img_dims, int* ker_dims, int* pad, int in_channels, int out_channels, int ndims);
 
 void get_region_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
-dyn_var<int>** curr_indices, Schedule s,
-int* stride, int* dilation, int* out_dims, int* pad, int* orig_img_dims, static_var<int>* regions, int* img_bounds, int* ker_dims,
-int in_channels, int out_channels, int curr_dim, int ndims); 
+    dyn_var<int>** curr_indices, Schedule s,
+    int* stride, int* dilation, int* out_dims, int* pad, int* orig_img_dims, static_var<int>* regions, int* img_bounds, int* ker_dims,
+    int in_channels, int out_channels, int curr_dim, int ndims); 

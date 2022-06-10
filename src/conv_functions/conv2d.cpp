@@ -282,7 +282,7 @@ void update(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<c
  * 
  */
 void get_current_loop(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
-                    dyn_var<int>** curr_indices,
+                    dyn_var<int>** curr_indices, 
                     Schedule s, LoopSchedule loop, int curr_loop, std::string annotation, 
                     int* stride, int* dilation, int* out_dims, int* pad, int* orig_img_dims, static_var<int>* r, int* img_bounds, int* ker_dims, 
                     int in_channels, int out_channels, int ndims) {
@@ -311,10 +311,8 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
         "batches",
         "in channels",
         "out channels",
-        "image rows",
-        "image columns",
-        "kernel rows",
-        "kernel columns",
+        "image",
+        "kernel",
     };
     std::string annotation = "Comment: looping over " + loop_names[static_cast<int>(loop.type)];
     // add pragmas
@@ -330,11 +328,10 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
     int ker_st_idx = img_st_idx + ndims;
     if (loop.type == LoopSchedule::loop_type::KERNEL) {
         builder::annotate(annotation);
-        for (dyn_var<int> j = 0; j < loop.bound; j = j + loop.stride) {
-            dyn_var<int> total = *(curr_indices[loop_type + loop.dim]) + j;
-            curr_indices[loop_type + loop.dim] = total.addr(); 
+        for (dyn_var<int> j = *(curr_indices[ker_st_idx + loop.dim]); j < *(curr_indices[ker_st_idx + loop.dim]) + loop.bound; j = j + loop.stride) {
+            curr_indices[ker_st_idx + loop.dim] = j.addr();
             if (r[loop.dim] != 2 && loop.after) {
-                dyn_var<int> im_idx = *(curr_indices[img_st_idx + loop.dim]) * stride[loop.dim] + *(curr_indices[loop_type + loop.dim]) * dilation[loop.dim];
+                dyn_var<int> im_idx = *(curr_indices[img_st_idx + loop.dim]) * stride[loop.dim] + *(curr_indices[ker_st_idx + loop.dim]) * dilation[loop.dim];
                 if (im_idx < pad[loop.dim]) continue;
                 else if (im_idx < orig[loop.dim] + pad[loop.dim]) {
                      get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims,
@@ -358,12 +355,11 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
             int h_hi = (loop.tiled && !loop.first && r[loop.dim] == 2) ? loop.bound : (img_bounds + loop.dim * N_REGIONS * ndims)[r[loop.dim] * 2 + 1];
             int str = (r[loop.dim] == 2) ? loop.stride : 1;
             builder::annotate(annotation);
-            for (dyn_var<int> i = h_lo; i < h_hi; i = i + str) {
-                dyn_var<int> total = *(curr_indices[loop_type + loop.dim]) + i;
-                curr_indices[loop_type + loop.dim] = total.addr();
-
+            for (dyn_var<int> i = h_lo + *(curr_indices[img_st_idx + loop.dim]); i < *(curr_indices[img_st_idx + loop.dim]) + h_hi; i = i + str) {
+                // dyn_var<int> total = *(curr_indices[img_st_idx + loop.dim]) + i;
+                curr_indices[img_st_idx + loop.dim] = i.addr();
                 if (r[loop.dim] != 2 && loop.after) {
-                    dyn_var<int> im_i = *(curr_indices[loop_type + loop.dim]) * stride[loop.dim] + *(curr_indices[ker_st_idx + loop.dim]) * dilation[loop.dim];
+                    dyn_var<int> im_i = *(curr_indices[img_st_idx + loop.dim]) * stride[loop.dim] + *(curr_indices[ker_st_idx + loop.dim]) * dilation[loop.dim];
                     if (im_i < pad[loop.dim]) continue; 
                     else if (im_i < orig[loop.dim] + pad[loop.dim]) {
                         get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims,
@@ -377,9 +373,8 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
         }
     } else {
         builder::annotate(annotation);
-        for (dyn_var<int> idx = 0; idx < loop.bound; idx = idx + loop.stride) {
-            dyn_var<int> total = *(curr_indices[loop_type]) + idx;
-            curr_indices[loop_type] = total.addr();
+        for (dyn_var<int> idx = *(curr_indices[loop_type]); idx < *(curr_indices[loop_type]) + loop.bound; idx = idx + loop.stride) {
+            curr_indices[loop_type] = idx.addr();
             get_current_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims,
                         pad, orig, r, img_bounds, ker_dims, in_channels, out_channels, ndims);
         }
@@ -406,6 +401,13 @@ void get_region_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data,
         }
     }
 
+void get_indexing_depths(int* depths, int* dims, int ndims) {
+    depths[ndims] = 1;
+    for (static_var<int> d = ndims - 1; d >= 0; d = d - 1) {
+        depths[d] = depths[d + 1] * dims[d];
+    }
+}
+
 ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<conv_t*> weight_data, int* orig_img_dims, int* ker_dims, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
                     int* padding, int padding_same, Schedule s, int ndims, int* out_dims, int* pad_dims, int* padded_img_dims) {
@@ -420,7 +422,7 @@ ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<
     for (static_var<int> i = 0; i < ndims; i = i + 1) {
         if (padding_same == 1) {
             // torch does not support padding "same" with stride other than 1
-            conv::runtime::conv_assert(stride[i] == 1);
+            assert(stride[i] == 1);
             // calculate padding such that the output is the same shape as the input
             padded_img_dims[i] = orig_img_dims[i] * stride[i] - stride[i] + dilation[i] * (ker_dims[i] - 1) + 1;
             pad_dims[i] = (padded_img_dims[i] - orig_img_dims[i]) / 2;
@@ -443,13 +445,13 @@ ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<
     output.batch_size = batch_size;
     output.data = conv::runtime::conv_calloc(size, (int)sizeof(conv_t));
 
-    // TODO: generalize this
-    dyn_var<int>* curr_indices[20];
+    int sz = (2 * ndims + 3) * 2;
+    dyn_var<int>** curr_indices = (dyn_var<int>**)malloc(sz * sizeof(dyn_var<int>*));
     dyn_var<int> st = 0;
-    for (static_var<int> i = 0; i < 20; i = i + 1) {
+    for (static_var<int> i = 0; i < sz; i = i + 1) {
         curr_indices[i] = st.addr();
     }
-    
+
     static_var<int>* regions = (static_var<int>*)malloc(ndims * (int)sizeof(int)); // indices of the regions
     get_region_loops(inp_data, weight_data, output.data, curr_indices, s, stride, dilation, out_dims, pad_dims,
         orig_img_dims, regions, img_bounds, ker_dims, in_channels, out_channels, ndims, ndims);
@@ -457,6 +459,7 @@ ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<
     free(img_bounds);
     free(ker_bounds);
     free(regions);
+    free(curr_indices);
     return output;
 }
 
