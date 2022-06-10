@@ -1,8 +1,6 @@
 struct TestOptions {
-    int iw;
-    int ih;
-    int ww;
-    int wh;
+    int* img;
+    int* ker;
     int batch_size;
     int in_channels;
     int out_channels;

@@ -15,10 +15,6 @@ using conv::LoopSchedule;
 
 typedef float conv_t;
 
-ImageT<conv_t> static_conv2d(dyn_var<conv_t*> inp_data, dyn_var<conv_t*> weight_data, int iw, int ih, int ww, int wh, 
-                    int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
-                    int* padding, int padding_same);
-
 void get_bounds(int* img_bounds, int* ker_bounds, int out_size, int ker_size, int pad, int stride, int dilation, int orig_size, int im_size);
 
 void update_output(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, dyn_var<int> out_idx,
@@ -39,22 +35,26 @@ ImageT<conv_t> static_conv2d_with_tiled_loops(dyn_var<conv_t*> inp_data, dyn_var
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
                     int* padding, int padding_same);
 
-ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<conv_t*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
+ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<conv_t*> weight_data, int* orig_img_dims, int* ker_dims, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
-                    int* padding, int padding_same, Schedule s);
+                    int* padding, int padding_same, Schedule s, int ndims, int* out_dims, int* pad_dims, int* padded_img_dims);
 
 
 void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
-                dyn_var<int>** curr_indices, Schedule s, int curr_loop, int ww, int wh, int* stride, int* dilation, 
-                int orig_inch_h_w, int orig_h_w, int oh_times_ow, int inch_oh_ow, int ow, int ker_inch_w_h, int ker_w_h, int oh, bool* cond, int* pad, int* orig, int* r, int** img_bounds);
+                dyn_var<int>** curr_indices, Schedule s, int curr_loop, int* stride, int* dilation, int* out_dims, 
+                int* pad, int* orig, static_var<int>* r, int* img_bounds, int* ker_dims, int in_channels, int out_channels, int ndims);
 
 void get_current_loop(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
-                    dyn_var<int>** curr_indices,
+                    dyn_var<int>** curr_indices, 
                     Schedule s, LoopSchedule loop, int curr_loop, std::string annotation, 
-                    int ww, int wh, int* stride, int* dilation, int orig_inch_h_w, int orig_h_w, int oh_times_ow, 
-                    int inch_oh_ow, int ow, int ker_inch_w_h, int ker_w_h, int oh, bool* cond, int* pad, int* orig, int* r, int** img_bounds);
+                    int* stride, int* dilation, int* out_dims, int* pad, 
+                    int* orig, static_var<int>* r, int* img_bounds, int* ker_dims, int in_channels, int out_channels, int ndims);
 
 void update(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data,
-            dyn_var<int>** curr_indices, int* stride, int* dilation, int orig_inch_h_w, int orig_h_w,
-            int oh_times_ow, int inch_oh_ow, int ow, int ker_inch_w_h, int ker_w_h,
-            int orig_iw, int ww, int pad_h, int pad_w);
+            dyn_var<int>** curr_indices, int* stride, int* dilation, int* out_dims, 
+            int* orig_img_dims, int* ker_dims, int* pad, int in_channels, int out_channels, int ndims);
+
+void get_region_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
+    dyn_var<int>** curr_indices, Schedule s,
+    int* stride, int* dilation, int* out_dims, int* pad, int* orig_img_dims, static_var<int>* regions, int* img_bounds, int* ker_dims,
+    int in_channels, int out_channels, int curr_dim, int ndims); 

@@ -5,6 +5,8 @@ namespace runtime {
     dyn_var<int*(int)> conv_malloc("conv_runtime::conv_malloc");
     dyn_var<int*(int, int)> conv_calloc("conv_runtime::conv_calloc");
     dyn_var<void(int*)> conv_free("conv_runtime::conv_free");
+    dyn_var<int*(int)> int_malloc("(int*)conv_runtime::conv_malloc");
+
 
     dyn_var<void(void)> start_timer("conv_runtime::start_timer");
     dyn_var<float(void)> stop_timer("conv_runtime::stop_timer");

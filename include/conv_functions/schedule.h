@@ -16,7 +16,7 @@ struct LoopSchedule {
     bool last = true; // last tiled loop
 
     int bound; // upper bound
-    int stride = 1;
+    int stride = 1; 
 
     // if this is an image loop does it come after 
     // a kernel loop for the same dim, and vice versa
@@ -26,12 +26,8 @@ struct LoopSchedule {
         N,   // batches
         IC,  // in channels
         OC,  // out channels
-        IMG,  // image height
-        IW,  // image width
+        IMG,  
         KERNEL,
-        KH,  // kernel height
-        KW,   // kernel width
-        IH
     };
 
     loop_type type;
@@ -78,41 +74,37 @@ struct LoopSchedule {
 struct Schedule {
 
     int n_loops;
+    int ndims;
     LoopSchedule* loops;
 
-    Schedule(LoopSchedule* loop_arr, int n) {
+    Schedule(LoopSchedule* loop_arr, int nloops, int n_dims) {
         loops = loop_arr;
-        n_loops = n;
-        bool found_iw = false;
-        bool found_ih = false;
-        bool found_kh = false;
-        bool found_kw = false;
+        n_loops = nloops;
+        ndims = n_dims;
+        int* img_found = new int[ndims];
+        int* ker_found = new int[ndims];
+        for (int i = 0; i < ndims; i++) {
+            img_found[i] = 0;
+            ker_found[i] = 0;
+        }
         
         for (int i = 0; i < n_loops; i = i + 1) {
             LoopSchedule loop = loop_arr[i];
             if (!loop.last) continue;
-            if (loop.type == LoopSchedule::loop_type::IMG && loop.dim == 1) {
-                if (found_kw) {
-                    loop_arr[i].after = true;
+            if (loop.type == LoopSchedule::loop_type::IMG) {
+                if (ker_found[loop.dim]) {
+                    loop_arr[i].after = 1;
                 }
-                found_iw = true;
-            } else if (loop.type == LoopSchedule::loop_type::IMG && loop.dim == 0) {
-                if (found_kh) {
-                    loop_arr[i].after = true;
+                img_found[loop.dim] = 1;
+            } else if (loop.type == LoopSchedule::loop_type::KERNEL) {
+                if (img_found[loop.dim]) {
+                    loop_arr[i].after = 1;
                 }
-                found_ih = true;
-            } else if (loop.type == LoopSchedule::loop_type::KERNEL && loop.dim == 1) {
-                if (found_iw) {
-                    loop_arr[i].after = true;
-                }
-                found_kw = true;
-            } else if (loop.type == LoopSchedule::loop_type::KERNEL && loop.dim == 0) {
-                if (found_ih) {
-                    loop_arr[i].after = true;
-                }
-                found_kh = true;
+                ker_found[loop.dim] = 1;
             }
         }
+        delete[] img_found;
+        delete[] ker_found;
     }
 
   
