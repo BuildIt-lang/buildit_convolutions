@@ -77,7 +77,8 @@ void get_bounds(int* img_bounds, int* ker_bounds, int out_size, int ker_size, in
 /**
  * Computes an output image value for a specific index.
  */
-void update_output(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, dyn_var<int> out_idx,
+template <typename T>
+void update_output(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> output_data, dyn_var<int> out_idx,
             dyn_var<int> im_i, dyn_var<int> im_j, dyn_var<int> inner_img_idx, dyn_var<int> inner_ker_idx, dyn_var<int> i, dyn_var<int> j,
             int orig_iw, int ww, int pad_h, int pad_w) {
     dyn_var<int> img_val = input_data[inner_img_idx + (im_i - pad_h) * orig_iw + (im_j - pad_w)];
@@ -88,7 +89,8 @@ void update_output(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dy
 /**
  * Loops over kernel columns.
  */
-dyn_var<int> kernel_w_loop(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, dyn_var<int> w_stride, 
+template <typename T>
+dyn_var<int> kernel_w_loop(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> output_data, dyn_var<int> w_stride, 
     dyn_var<int> out_idx, dyn_var<int> im_i, dyn_var<int> inner_img_idx, dyn_var<int> inner_ker_idx, int ww, 
     dyn_var<int> i, int orig_iw, int pad_h, int pad_w, int dil, bool h_condition) {
     dyn_var<int> counter = 0;
@@ -118,7 +120,8 @@ dyn_var<int> kernel_w_loop(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_
  * There are if conditions when the kernel intersects
  * the border between the padded area and the original image.
  */
-dyn_var<int> kernel_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data,
+template <typename T>
+dyn_var<int> kernel_loops(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> output_data,
             dyn_var<int> h, dyn_var<int> w, dyn_var<int> w_stride, dyn_var<int> h_stride, dyn_var<int> out_idx, 
             dyn_var<int> inner_img_idx, dyn_var<int> inner_ker_idx, int ww, int wh,
             int* dilation, int pad_h, int pad_w,
@@ -146,7 +149,8 @@ dyn_var<int> kernel_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_d
  * Splits the image loops based on the position of the kernel wrt the image.
  * Currently works only for padding value 0.
  */
-ImageT<conv_t> static_conv2d_with_tiled_loops(dyn_var<conv_t*> inp_data, dyn_var<conv_t*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
+template <typename T>
+ImageT<T> static_conv2d_with_tiled_loops(dyn_var<T*> inp_data, dyn_var<T*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
                     int* padding, int padding_same) {
 
@@ -181,7 +185,7 @@ ImageT<conv_t> static_conv2d_with_tiled_loops(dyn_var<conv_t*> inp_data, dyn_var
     static_var<int> ker_w_h = ww * wh;
     static_var<int> ker_inch_w_h = in_channels * ker_w_h;
 
-    ImageT<conv_t> output;
+    ImageT<T> output;
     output.dims = conv::runtime::int_malloc(2 * (int)sizeof(int));
     output.dims[0] = oh;
     output.dims[1] = ow;
@@ -189,7 +193,7 @@ ImageT<conv_t> static_conv2d_with_tiled_loops(dyn_var<conv_t*> inp_data, dyn_var
     output.in_channels = out_channels;
     output.batch_size = batch_size;
     static_var<int> size = ow * oh * batch_size * out_channels;
-    output.data = conv::runtime::conv_calloc(size, (int)sizeof(conv_t));
+    output.data = conv::runtime::conv_calloc(size, (int)sizeof(T));
     builder::annotate("Comment: looping over batches | #pragma omp parallel for collapse(3)");
     for (dyn_var<int> bid = 0; bid < batch_size; bid = bid + 1) {
         builder::annotate("Comment: looping over out channels");
@@ -242,11 +246,18 @@ ImageT<conv_t> static_conv2d_with_tiled_loops(dyn_var<conv_t*> inp_data, dyn_var
     return output;
 }
 
+template ImageT<float> static_conv2d_with_tiled_loops<float>(dyn_var<float*> inp_data, dyn_var<float*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
+                    int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
+                    int* padding, int padding_same);
+template ImageT<int> static_conv2d_with_tiled_loops<int>(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int orig_iw, int orig_ih, int ww, int wh, 
+                    int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
+                    int* padding, int padding_same);
+
 /**
  * Updates the value at the current index of the image.
  */
-
-void update(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data,
+template <typename T>
+void update(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> output_data,
             dyn_var<int>** curr_indices, int* stride, int* dilation, int* out_dims, 
             int* orig_img_dims, int* ker_dims, int* pad, int in_channels, int out_channels, int ndims) {
     dyn_var<int> bid = *(curr_indices[0]);
@@ -281,7 +292,8 @@ void update(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<c
  * Otherwise, recursively calls the next loop.
  * 
  */
-void get_current_loop(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
+template <typename T>
+void get_current_loop(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> output_data, 
                     dyn_var<int>** curr_indices, 
                     Schedule s, LoopSchedule loop, int curr_loop, std::string annotation, 
                     int* stride, int* dilation, int* out_dims, int* pad, int* orig_img_dims, static_var<int>* r, int* img_bounds, int* ker_dims, 
@@ -301,7 +313,8 @@ void get_current_loop(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data,
 /**
  * A recursive function that returns all the loops in the order given by the schedule.
  */
-void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
+template <typename T>
+void get_loops(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> output_data, 
                 dyn_var<int>** curr_indices, Schedule s, int curr_loop, 
                 int* stride, int* dilation, int* out_dims, int* pad, int* orig, static_var<int>* r, int* img_bounds, int* ker_dims,
                 int in_channels, int out_channels, int ndims) {
@@ -321,7 +334,7 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
     } else if (loop.vectorized) {
         annotation += " | #pragma omp simd ";
     } else if (loop.unrolled) {
-        annotation += ""; // TODO
+        annotation += " | #pragma unroll";
     }
     int loop_type = static_cast<int>(loop.type);
     int img_st_idx = 3;
@@ -381,7 +394,8 @@ void get_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_va
     }
 }
 
-void get_region_loops(dyn_var<conv_t*> input_data, dyn_var<conv_t*> weight_data, dyn_var<conv_t*> output_data, 
+template <typename T>
+void get_region_loops(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> output_data, 
     dyn_var<int>** curr_indices, Schedule s,
     int* stride, int* dilation, int* out_dims, int* pad, int* orig_img_dims, static_var<int>* regions, int* img_bounds, int* ker_dims,
     int in_channels, int out_channels, int curr_dim, int ndims) {
@@ -408,11 +422,12 @@ void get_indexing_depths(int* depths, int* dims, int ndims) {
     }
 }
 
-ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<conv_t*> weight_data, int* orig_img_dims, int* ker_dims, 
+template <typename T>
+ImageT<T> static_conv2d_with_scheduling(dyn_var<T*> inp_data, dyn_var<T*> weight_data, int* orig_img_dims, int* ker_dims, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
                     int* padding, int padding_same, Schedule s, int ndims, int* out_dims, int* pad_dims, int* padded_img_dims) {
 
-    ImageT<conv_t> output;
+    ImageT<T> output;
     output.dims = conv::runtime::int_malloc(ndims * (int)sizeof(int));
     static_var<int> size = batch_size * out_channels;
 
@@ -443,8 +458,9 @@ ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<
 
     output.in_channels = out_channels;
     output.batch_size = batch_size;
-    output.data = conv::runtime::conv_calloc(size, (int)sizeof(conv_t));
+    output.data = conv::runtime::conv_calloc(size, (int)sizeof(T));
 
+    // TODO: generalize this
     int sz = (2 * ndims + 3) * 2;
     dyn_var<int>** curr_indices = (dyn_var<int>**)malloc(sz * sizeof(dyn_var<int>*));
     dyn_var<int> st = 0;
@@ -462,5 +478,12 @@ ImageT<conv_t> static_conv2d_with_scheduling(dyn_var<conv_t*> inp_data, dyn_var<
     free(curr_indices);
     return output;
 }
+
+template ImageT<float> static_conv2d_with_scheduling(dyn_var<float*> inp_data, dyn_var<float*> weight_data, int* orig_img_dims, int* ker_dims, 
+                    int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
+                    int* padding, int padding_same, Schedule s, int ndims, int* out_dims, int* pad_dims, int* padded_img_dims);
+template ImageT<int> static_conv2d_with_scheduling(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int* orig_img_dims, int* ker_dims, 
+                    int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
+                    int* padding, int padding_same, Schedule s, int ndims, int* out_dims, int* pad_dims, int* padded_img_dims);
 
 

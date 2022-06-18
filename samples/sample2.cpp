@@ -30,7 +30,7 @@ int main() {
     int padding_same[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     std::string func_names[] = {"f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10"};
     for (int i = 0; i < n_runs; i ++) {
-        auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_tiled_loops, func_names[i], iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i]);
+        auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_tiled_loops<float>, func_names[i], iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i]);
         block::eliminate_redundant_vars(ast);
         pipeline::conv_code_generator::generate_code(ast, code_file, 0);
         code_file << "\n" << std::endl;
