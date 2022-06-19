@@ -126,7 +126,7 @@ void test_conv3d(TestOptions opt, GeneratedFunction func, string test_name) {
 void compile_and_run(TestOptions opt, std::string test_name, int ndims) {
     std::string flags = "";
     auto fptr = (GeneratedFunction)pipeline::conv_code_generator::compile_function(
-            static_conv2d_with_tiled_loops, flags, opt.img[1], opt.img[0], opt.ker[1], opt.ker[0], opt.batch_size, opt.in_channels, 
+            static_conv2d_with_tiled_loops<float>, flags, opt.img[1], opt.img[0], opt.ker[1], opt.ker[0], opt.batch_size, opt.in_channels, 
             opt.out_channels, opt.stride, opt.dilation, opt.padding, opt.padding_same
             );
     if (ndims == 2) test_conv2d(opt, fptr, test_name);

@@ -63,16 +63,13 @@ int main() {
 
         int ker_dims[] = {ker[i][0], ker[i][1], ker[i][2]};
         int img_dims[] = {img[i][0], img[i][1], img[i][2]};
-        int out_dims[3];
-        int pad_dims[3];
-        int padded_img_dims[3];
 
         // int dims[] = {2, 5};
         // LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::IC, in_channels[i]), LoopSchedule(LoopSchedule::loop_type::IC, in_channels[i])};
         // in_ch.tile(dims, 2, subloops, 10);
         LoopSchedule all_loops[9] = {n, out_ch, in_ch, ix, iy, iz, kx, ky, kz};
         Schedule s = Schedule(all_loops, 9, 3);
-        auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling<float>, func_name[i], img_dims, ker_dims, batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s, 3, out_dims, pad_dims, padded_img_dims);
+        auto ast = builder::builder_context().extract_function_ast(static_conv2d_with_scheduling<float>, func_name[i], img_dims, ker_dims, batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s, 3);
         block::eliminate_redundant_vars(ast);
         pipeline::conv_code_generator::generate_code(ast, code_file, 0);
         code_file << "\n" << std::endl;

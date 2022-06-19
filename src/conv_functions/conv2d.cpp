@@ -296,7 +296,7 @@ template <typename T>
 void get_current_loop(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> output_data, 
                     dyn_var<int>** curr_indices, 
                     Schedule s, LoopSchedule loop, int curr_loop, std::string annotation, 
-                    int* stride, int* dilation, int* out_dims, int* pad, int* orig_img_dims, static_var<int>* r, int* img_bounds, int* ker_dims, 
+                    int* stride, int* dilation, int* out_dims, int* pad, int* orig_img_dims, int* r, int* img_bounds, int* ker_dims, 
                     int in_channels, int out_channels, int ndims) {
     if (curr_loop == s.n_loops - 1) {
         // innermost loop
@@ -316,7 +316,7 @@ void get_current_loop(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T
 template <typename T>
 void get_loops(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> output_data, 
                 dyn_var<int>** curr_indices, Schedule s, int curr_loop, 
-                int* stride, int* dilation, int* out_dims, int* pad, int* orig, static_var<int>* r, int* img_bounds, int* ker_dims,
+                int* stride, int* dilation, int* out_dims, int* pad, int* orig, int* r, int* img_bounds, int* ker_dims,
                 int in_channels, int out_channels, int ndims) {
     assert(curr_loop < s.n_loops);
     LoopSchedule loop = s.loops[curr_loop];
@@ -397,7 +397,7 @@ void get_loops(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> outp
 template <typename T>
 void get_region_loops(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> output_data, 
     dyn_var<int>** curr_indices, Schedule s,
-    int* stride, int* dilation, int* out_dims, int* pad, int* orig_img_dims, static_var<int>* regions, int* img_bounds, int* ker_dims,
+    int* stride, int* dilation, int* out_dims, int* pad, int* orig_img_dims, int* regions, int* img_bounds, int* ker_dims,
     int in_channels, int out_channels, int curr_dim, int ndims) {
         if (curr_dim == 0) {
             get_loops(input_data, weight_data, output_data, curr_indices, s, 0, stride, dilation, out_dims, 
@@ -425,34 +425,38 @@ void get_indexing_depths(int* depths, int* dims, int ndims) {
 template <typename T>
 ImageT<T> static_conv2d_with_scheduling(dyn_var<T*> inp_data, dyn_var<T*> weight_data, int* orig_img_dims, int* ker_dims, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
-                    int* padding, int padding_same, Schedule s, int ndims, int* out_dims, int* pad_dims, int* padded_img_dims) {
+                    int* padding, int padding_same, Schedule s, int ndims) {
 
     ImageT<T> output;
     output.dims = conv::runtime::int_malloc(ndims * (int)sizeof(int));
     static_var<int> size = batch_size * out_channels;
 
-    int* img_bounds = (int*)malloc(ndims * ndims * N_REGIONS * (int)sizeof(int));
-    int* ker_bounds = (int*)malloc(ndims * ndims * N_REGIONS * (int)sizeof(int));
+    std::unique_ptr<int> out_dims(new int[ndims]);
+    std::unique_ptr<int> pad_dims(new int[ndims]);
+    std::unique_ptr<int> padded_img_dims(new int[ndims]);
+
+    std::unique_ptr<int> img_bounds(new int[ndims * ndims * N_REGIONS]);
+    std::unique_ptr<int> ker_bounds(new int[ndims * ndims * N_REGIONS]);
 
     for (static_var<int> i = 0; i < ndims; i = i + 1) {
         if (padding_same == 1) {
             // torch does not support padding "same" with stride other than 1
             assert(stride[i] == 1);
             // calculate padding such that the output is the same shape as the input
-            padded_img_dims[i] = orig_img_dims[i] * stride[i] - stride[i] + dilation[i] * (ker_dims[i] - 1) + 1;
-            pad_dims[i] = (padded_img_dims[i] - orig_img_dims[i]) / 2;
+            padded_img_dims.get()[i] = orig_img_dims[i] * stride[i] - stride[i] + dilation[i] * (ker_dims[i] - 1) + 1;
+            pad_dims.get()[i] = (padded_img_dims.get()[i] - orig_img_dims[i]) / 2;
         } else {
-            pad_dims[i] = padding[i];
-            padded_img_dims[i] = orig_img_dims[i] + 2 * pad_dims[i];
+            pad_dims.get()[i] = padding[i];
+            padded_img_dims.get()[i] = orig_img_dims[i] + 2 * pad_dims.get()[i];
         }
         // dims of the output image
-        out_dims[i] = (padded_img_dims[i] - dilation[i] * (ker_dims[i] - 1) - 1) / stride[i] + 1;
-        output.dims[i] = out_dims[i];
+        out_dims.get()[i] = (padded_img_dims.get()[i] - dilation[i] * (ker_dims[i] - 1) - 1) / stride[i] + 1;
+        output.dims[i] = out_dims.get()[i];
 
-        size = size * out_dims[i];
+        size = size * out_dims.get()[i];
 
         // image bounds for padding
-        get_bounds(img_bounds + i * ndims * N_REGIONS, ker_bounds + i * ndims * N_REGIONS, out_dims[i], ker_dims[i], pad_dims[i], stride[i], dilation[i], orig_img_dims[i], padded_img_dims[i]);
+        get_bounds(img_bounds.get() + i * ndims * N_REGIONS, ker_bounds.get() + i * ndims * N_REGIONS, out_dims.get()[i], ker_dims[i], pad_dims.get()[i], stride[i], dilation[i], orig_img_dims[i], padded_img_dims.get()[i]);
 
     }
 
@@ -462,28 +466,23 @@ ImageT<T> static_conv2d_with_scheduling(dyn_var<T*> inp_data, dyn_var<T*> weight
 
     // TODO: generalize this
     int sz = (2 * ndims + 3) * 2;
-    dyn_var<int>** curr_indices = (dyn_var<int>**)malloc(sz * sizeof(dyn_var<int>*));
+    std::unique_ptr<dyn_var<int>*> curr_indices(new dyn_var<int>*[sz]);
     dyn_var<int> st = 0;
     for (static_var<int> i = 0; i < sz; i = i + 1) {
-        curr_indices[i] = st.addr();
+        curr_indices.get()[i] = st.addr();
     }
+    std::unique_ptr<int> regions(new int[ndims]);
+    get_region_loops(inp_data, weight_data, output.data, curr_indices.get(), s, stride, dilation, out_dims.get(), pad_dims.get(),
+        orig_img_dims, regions.get(), img_bounds.get(), ker_dims, in_channels, out_channels, ndims, ndims);
 
-    static_var<int>* regions = (static_var<int>*)malloc(ndims * (int)sizeof(int)); // indices of the regions
-    get_region_loops(inp_data, weight_data, output.data, curr_indices, s, stride, dilation, out_dims, pad_dims,
-        orig_img_dims, regions, img_bounds, ker_dims, in_channels, out_channels, ndims, ndims);
-
-    free(img_bounds);
-    free(ker_bounds);
-    free(regions);
-    free(curr_indices);
     return output;
 }
 
 template ImageT<float> static_conv2d_with_scheduling(dyn_var<float*> inp_data, dyn_var<float*> weight_data, int* orig_img_dims, int* ker_dims, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
-                    int* padding, int padding_same, Schedule s, int ndims, int* out_dims, int* pad_dims, int* padded_img_dims);
+                    int* padding, int padding_same, Schedule s, int ndims);
 template ImageT<int> static_conv2d_with_scheduling(dyn_var<int*> inp_data, dyn_var<int*> weight_data, int* orig_img_dims, int* ker_dims, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
-                    int* padding, int padding_same, Schedule s, int ndims, int* out_dims, int* pad_dims, int* padded_img_dims);
+                    int* padding, int padding_same, Schedule s, int ndims);
 
 

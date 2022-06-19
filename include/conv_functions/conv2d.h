@@ -39,19 +39,19 @@ ImageT<T> static_conv2d_with_tiled_loops(dyn_var<T*> inp_data, dyn_var<T*> weigh
 template <typename T>
 ImageT<T> static_conv2d_with_scheduling(dyn_var<T*> inp_data, dyn_var<T*> weight_data, int* orig_img_dims, int* ker_dims, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
-                    int* padding, int padding_same, Schedule s, int ndims, int* out_dims, int* pad_dims, int* padded_img_dims);
+                    int* padding, int padding_same, Schedule s, int ndims);
 
 template <typename T>
 void get_loops(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> output_data, 
                 dyn_var<int>** curr_indices, Schedule s, int curr_loop, int* stride, int* dilation, int* out_dims, 
-                int* pad, int* orig, static_var<int>* r, int* img_bounds, int* ker_dims, int in_channels, int out_channels, int ndims);
+                int* pad, int* orig, int* r, int* img_bounds, int* ker_dims, int in_channels, int out_channels, int ndims);
 
 template <typename T>
 void get_current_loop(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> output_data, 
                     dyn_var<int>** curr_indices, 
                     Schedule s, LoopSchedule loop, int curr_loop, std::string annotation, 
                     int* stride, int* dilation, int* out_dims, int* pad, 
-                    int* orig, static_var<int>* r, int* img_bounds, int* ker_dims, int in_channels, int out_channels, int ndims);
+                    int* orig, int* r, int* img_bounds, int* ker_dims, int in_channels, int out_channels, int ndims);
 
 template <typename T>
 void update(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> output_data,
@@ -61,5 +61,5 @@ void update(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> output_
 template <typename T>
 void get_region_loops(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> output_data, 
     dyn_var<int>** curr_indices, Schedule s,
-    int* stride, int* dilation, int* out_dims, int* pad, int* orig_img_dims, static_var<int>* regions, int* img_bounds, int* ker_dims,
+    int* stride, int* dilation, int* out_dims, int* pad, int* orig_img_dims, int* regions, int* img_bounds, int* ker_dims,
     int in_channels, int out_channels, int curr_dim, int ndims); 
