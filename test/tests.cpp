@@ -5,7 +5,7 @@
 #include "runtime_functions.h"
 #include "runtime_types.h"
 #include "pipeline/conv_code_generator.h"
-#include "conv_functions/conv2d.h"
+#include "conv_functions/conv_nd.h"
 #include "test_conv2d_code.h"
 #include "test_convnd_code.h"
 
@@ -123,15 +123,17 @@ void test_conv3d(TestOptions opt, GeneratedFunction func, string test_name) {
     compare(torch_output, conv_output, test_name, "", 3);
 }
 
+/*
 void compile_and_run(TestOptions opt, std::string test_name, int ndims) {
     std::string flags = "";
     auto fptr = (GeneratedFunction)pipeline::conv_code_generator::compile_function(
-            static_conv2d_with_tiled_loops<float>, flags, opt.img[1], opt.img[0], opt.ker[1], opt.ker[0], opt.batch_size, opt.in_channels, 
+            conv_nd_main<float>, flags, opt.img, opt.ker, opt.batch_size, opt.in_channels, 
             opt.out_channels, opt.stride, opt.dilation, opt.padding, opt.padding_same
             );
     if (ndims == 2) test_conv2d(opt, fptr, test_name);
     else if (ndims == 3) test_conv3d(opt, fptr, test_name);
 }
+*/
 
 void test_conv2d() {
 

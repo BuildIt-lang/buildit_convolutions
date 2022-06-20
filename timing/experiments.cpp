@@ -8,7 +8,7 @@
 #include <fstream>
 #include "blocks/c_code_generator.h"
 #include "blocks/rce.h"
-#include "conv_functions/conv2d.h"
+#include "conv_functions/conv_nd.h"
 #include "pipeline/conv.h"
 #include "pipeline/conv_code_generator.h"
 #include "specialized_timing_code.h"
