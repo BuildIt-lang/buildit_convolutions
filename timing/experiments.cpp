@@ -11,7 +11,7 @@
 #include "conv_functions/conv_nd.h"
 #include "pipeline/conv.h"
 #include "pipeline/conv_code_generator.h"
-#include "specialized_timing_code.h"
+#include "timing_code.h"
 
 using namespace torch;
 using namespace std::chrono;
@@ -22,7 +22,7 @@ typedef float conv_t;
 typedef conv_runtime::ImageT<conv_t> (*GeneratedFunction) (conv_t* a, conv_t* b);
 
 void compare(Tensor expected, conv_runtime::ImageT<conv_t> result, string test_name, string test_details) {
-    std::cout << "Running test: " << test_name << " " << test_details << std::endl;
+    std::cout << "Running test: " << test_name << " " << test_details;
     assert(result.batch_size == expected.size(0));
     assert(result.in_channels == expected.size(1));
     assert (result.dims[0] == expected.size(2));
@@ -113,17 +113,6 @@ void run() {
     for (int i = 0; i < n_runs; i++) {
         time_specialized_conv2d(iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], functions[i], func_names[i]);
     }
-    // std::string flags = "";
-    // for (int i = 0; i < n_runs; i++) {
-    //     auto fptr = (GeneratedFunction)pipeline::conv_code_generator::compile_function(
-    //         static_conv2d_with_tiled_loops, flags, iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], 
-    //         out_channels[i], stride[i], dilation[i], padding[i], padding_same[i]
-    //         );
-    //     time_specialized_conv2d(
-    //         iw[i], ih[i], kw[i], kh[i], batch_size[i], in_channels[i], out_channels[i], 
-    //         stride[i], dilation[i], padding[i], padding_same[i], fptr, func_names[i]
-    //         );
-    // }
 }
 
 int main() {
