@@ -53,24 +53,19 @@ int main() {
     int in_channels[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 10, 5, 5, 5, 1, 1, 1, 5, 1};
     int out_channels[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 10, 10, 1, 3, 1, 1, 1, 1, 6};
     for (int i = 0; i < num_tests; i ++) {
-        // std::cout << "------ test " << i << " -----" << std::endl;
-        // define loop schedules
+        int oh = (ih[i] - dilation[i][0] * (wh[i] - 1) - 1) / stride[i][0] + 1;
+        int ow = (iw[i] - dilation[i][1] * (ww[i] - 1) - 1) / stride[i][1] + 1;
         LoopSchedule n = LoopSchedule(LoopSchedule::loop_type::N, batch_size[i]);
         LoopSchedule in_ch = LoopSchedule(LoopSchedule::loop_type::IC, in_channels[i]);
         LoopSchedule out_ch = LoopSchedule(LoopSchedule::loop_type::OC, out_channels[i]);
-        LoopSchedule iy = LoopSchedule(LoopSchedule::loop_type::IMG, ih[i]);
-        LoopSchedule ix = LoopSchedule(LoopSchedule::loop_type::IMG, iw[i]);
+        LoopSchedule iy = LoopSchedule(LoopSchedule::loop_type::IMG, oh);
+        LoopSchedule ix = LoopSchedule(LoopSchedule::loop_type::IMG, ow);
         LoopSchedule ky = LoopSchedule(LoopSchedule::loop_type::KERNEL, wh[i]);
         LoopSchedule kx = LoopSchedule(LoopSchedule::loop_type::KERNEL, ww[i]);
         ky.dim = 0;
         kx.dim = 1;
         ix.dim = 1;
         iy.dim = 0;
-
-        int oh = (ih[i] - dilation[i][0] * (wh[i] - 1) - 1) / stride[i][0] + 1;
-        int ow = (iw[i] - dilation[i][1] * (ww[i] - 1) - 1) / stride[i][1] + 1;
-        ix.bound = ow;
-        iy.bound = oh;
 
         int ker_dims[] = {wh[i], ww[i]};
         int img_dims[] = {ih[i], iw[i]};
@@ -79,6 +74,7 @@ int main() {
             int dims[] = {2, 5};
             LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::IC, in_channels[i]), LoopSchedule(LoopSchedule::loop_type::IC, in_channels[i])};
             in_ch.tile(dims, 2, subloops, 10);
+            subloops[0].unroll();
             LoopSchedule all_loops[8] = {out_ch, n, ky, subloops[0], iy, subloops[1], kx, ix};
             Schedule s = Schedule(all_loops, 8, 2);
             auto ast = builder::builder_context().extract_function_ast(conv_nd_main<float>, func_name[i], img_dims, ker_dims, batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s, 2);
@@ -86,6 +82,7 @@ int main() {
             pipeline::conv_code_generator::generate_code(ast, code_file, 0);
             code_file << "\n" << std::endl;
         } else if (i == 11) {
+            ix.unroll();
             int dims[] = {2, 5};
             LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::KERNEL, ww[i]), LoopSchedule(LoopSchedule::loop_type::KERNEL, ww[i])};
             kx.tile(dims, 2, subloops, 10);
@@ -96,6 +93,8 @@ int main() {
             pipeline::conv_code_generator::generate_code(ast, code_file, 0);
             code_file << "\n" << std::endl;
         } else if (i == 1) {
+            n.unroll();
+            ky.unroll();
             int dims[] = {3, 3};
             LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::IMG, ow), LoopSchedule(LoopSchedule::loop_type::IMG, ow)};
             ix.tile(dims, 2, subloops, 10);
@@ -117,6 +116,7 @@ int main() {
             pipeline::conv_code_generator::generate_code(ast, code_file, 0);
             code_file << "\n" << std::endl;
         } else if (i == 8) {
+            // n.unroll();
             // the center region loop bounds are 3 to 11
             int dims[] = {2, 2, 2};
             LoopSchedule subloops[] = {LoopSchedule(LoopSchedule::loop_type::IMG, oh), LoopSchedule(LoopSchedule::loop_type::IMG, oh), LoopSchedule(LoopSchedule::loop_type::IMG, oh)};
@@ -132,6 +132,7 @@ int main() {
             int dims[] = {2, 3};
             LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::IMG, oh), LoopSchedule(LoopSchedule::loop_type::IMG, oh)};
             iy.tile(dims, 2, subloops, 6);
+            ix.unroll();
             LoopSchedule all_loops[8] = {out_ch, n, ky, in_ch, ix, subloops[0], kx, subloops[1]};
             Schedule s = Schedule(all_loops, 8, 2);
             auto ast = builder::builder_context().extract_function_ast(conv_nd_main<float>, func_name[i], img_dims, ker_dims, batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s, 2);

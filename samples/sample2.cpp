@@ -17,6 +17,7 @@ int main() {
     code_file << "#include <assert.h>\n" << std::endl;
     code_file << "#include <omp.h>\n" << std::endl;
     
+    // 3d tests
     int num_tests = 8;
     std::string func_name[] = {
         "conv3d_default_img5x5x5_ker3x3x3",
@@ -38,12 +39,15 @@ int main() {
     int in_channels[] = {1, 1, 1, 1, 1, 1, 1, 4};
     int out_channels[] = {1, 1, 1, 1, 1, 1, 1, 5};
     for (int i = 0; i < num_tests; i ++) {
+        int ox = (img[i][0] - dilation[i][0] * (ker[i][0] - 1) - 1) / stride[i][0] + 1;
+        int oy = (img[i][1] - dilation[i][1] * (ker[i][1] - 1) - 1) / stride[i][1] + 1;
+        int oz = (img[i][2] - dilation[i][2] * (ker[i][2] - 1) - 1) / stride[i][2] + 1;
         LoopSchedule n = LoopSchedule(LoopSchedule::loop_type::N, batch_size[i]);
         LoopSchedule in_ch = LoopSchedule(LoopSchedule::loop_type::IC, in_channels[i]);
         LoopSchedule out_ch = LoopSchedule(LoopSchedule::loop_type::OC, out_channels[i]);
-        LoopSchedule ix = LoopSchedule(LoopSchedule::loop_type::IMG, img[i][0]);
-        LoopSchedule iy = LoopSchedule(LoopSchedule::loop_type::IMG, img[i][1]);
-        LoopSchedule iz = LoopSchedule(LoopSchedule::loop_type::IMG, img[i][2]);
+        LoopSchedule ix = LoopSchedule(LoopSchedule::loop_type::IMG, ox);
+        LoopSchedule iy = LoopSchedule(LoopSchedule::loop_type::IMG, oy);
+        LoopSchedule iz = LoopSchedule(LoopSchedule::loop_type::IMG, oz);
         LoopSchedule kx = LoopSchedule(LoopSchedule::loop_type::KERNEL, ker[i][0]);
         LoopSchedule ky = LoopSchedule(LoopSchedule::loop_type::KERNEL, ker[i][1]);
         LoopSchedule kz = LoopSchedule(LoopSchedule::loop_type::KERNEL, ker[i][2]);
@@ -54,27 +58,39 @@ int main() {
         iy.dim = 1;
         iz.dim = 2;
 
-        int ox = (img[i][0] - dilation[i][0] * (ker[i][0] - 1) - 1) / stride[i][0] + 1;
-        int oy = (img[i][1] - dilation[i][1] * (ker[i][1] - 1) - 1) / stride[i][1] + 1;
-        int oz = (img[i][2] - dilation[i][2] * (ker[i][2] - 1) - 1) / stride[i][2] + 1;
-        ix.bound = ox;
-        iy.bound = oy;
-        iz.bound = oz;
-
         int ker_dims[] = {ker[i][0], ker[i][1], ker[i][2]};
         int img_dims[] = {img[i][0], img[i][1], img[i][2]};
+        if (i == 1) {
+            kx.unroll();
+            int dims[] = {3, 3}; // these have to multiply up to the dimension of the output image, not the input
+            LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::IMG, oz), LoopSchedule(LoopSchedule::loop_type::IMG, oz)};
+            iz.tile(dims, 2, subloops, 9);
+            LoopSchedule all_loops[10] = {n, out_ch, in_ch, subloops[0], iy, ix, kx, subloops[1], ky, kz};
+            Schedule s = Schedule(all_loops, 10, 3);
+            auto ast = builder::builder_context().extract_function_ast(conv_nd_main<float>, func_name[i], img_dims, ker_dims, batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s, 3);
+            block::eliminate_redundant_vars(ast);
+            pipeline::conv_code_generator::generate_code(ast, code_file, 0);
+            code_file << "\n" << std::endl;
+        } else if (i == 4) {
+            int dims[] = {2, 2};
+            LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::KERNEL, ker[i][0]), LoopSchedule(LoopSchedule::loop_type::KERNEL, ker[i][0])};
+            kx.tile(dims, 2, subloops, 4);
+            LoopSchedule all_loops[10] = {n, out_ch, in_ch, subloops[0], iy, iz, ix, subloops[1], ky, kz};
+            Schedule s = Schedule(all_loops, 10, 3);
+            auto ast = builder::builder_context().extract_function_ast(conv_nd_main<float>, func_name[i], img_dims, ker_dims, batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s, 3);
+            block::eliminate_redundant_vars(ast);
+            pipeline::conv_code_generator::generate_code(ast, code_file, 0);
+            code_file << "\n" << std::endl;
+        } else {
+            LoopSchedule all_loops[9] = {n, out_ch, in_ch, ix, iy, iz, kx, ky, kz};
+            Schedule s = Schedule(all_loops, 9, 3);
+            auto ast = builder::builder_context().extract_function_ast(conv_nd_main<float>, func_name[i], img_dims, ker_dims, batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s, 3);
+            block::eliminate_redundant_vars(ast);
+            pipeline::conv_code_generator::generate_code(ast, code_file, 0);
+            code_file << "\n" << std::endl;
+        }
+    }    
 
-        // int dims[] = {2, 5};
-        // LoopSchedule subloops[2] = {LoopSchedule(LoopSchedule::loop_type::IC, in_channels[i]), LoopSchedule(LoopSchedule::loop_type::IC, in_channels[i])};
-        // in_ch.tile(dims, 2, subloops, 10);
-        LoopSchedule all_loops[9] = {n, out_ch, in_ch, ix, iy, iz, kx, ky, kz};
-        Schedule s = Schedule(all_loops, 9, 3);
-        auto ast = builder::builder_context().extract_function_ast(conv_nd_main<float>, func_name[i], img_dims, ker_dims, batch_size[i], in_channels[i], out_channels[i], stride[i], dilation[i], padding[i], padding_same[i], s, 3);
-        block::eliminate_redundant_vars(ast);
-        pipeline::conv_code_generator::generate_code(ast, code_file, 0);
-        code_file << "\n" << std::endl;
-
-    }
     code_file.close();
 	return 0;
 }

@@ -130,6 +130,23 @@ void get_next_loop(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> 
     }
 }
 
+template <typename T>
+void loop_body(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> output_data, 
+                    dyn_var<int>** curr_indices, 
+                    Schedule s, LoopSchedule loop, int curr_loop, std::string annotation, 
+                    int* stride, int* dilation, int* out_dims, int* pad, int* orig, int* r, int* img_bounds, int* ker_dims, 
+                    int in_channels, int out_channels, int ndims, int img_st_idx, int ker_st_idx) {
+    if (r[loop.dim] != 2 && loop.after) {
+        dyn_var<int> im_i = *(curr_indices[img_st_idx + loop.dim]) * stride[loop.dim] + *(curr_indices[ker_st_idx + loop.dim]) * dilation[loop.dim];
+        if (im_i >= pad[loop.dim] && im_i < orig[loop.dim] + pad[loop.dim]) {
+            get_next_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims,
+            pad, orig, r, img_bounds, ker_dims, in_channels, out_channels, ndims);
+        }
+    } else {
+        get_next_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims,
+            pad, orig, r, img_bounds, ker_dims, in_channels, out_channels, ndims);
+    }
+}
 
 /**
  * A recursive function that returns all the loops in the order given by the schedule.
@@ -156,7 +173,7 @@ void get_loops(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> outp
     } else if (loop.vectorized) {
         annotation += " | #pragma omp simd ";
     } else if (loop.unrolled) {
-        annotation += " | #pragma unroll";
+        // annotation += " | #pragma unroll";
     }
     int img_st_idx = 3;
     int ker_st_idx = img_st_idx + ndims;
@@ -177,27 +194,49 @@ void get_loops(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> outp
             h_hi = (loop.tiled && !loop.first && r[loop.dim] == 2) ? loop.bound : (img_bounds + loop.dim * N_REGIONS * ndims)[r[loop.dim] * 2 + 1];
             str = (r[loop.dim] == 2) ? loop.stride : 1;
         }
-        builder::annotate(annotation);
-        for (dyn_var<int> i = h_lo + *(curr_indices[st_idx + loop.dim]); i < *(curr_indices[st_idx + loop.dim]) + h_hi; i = i + str) {
-            curr_indices[st_idx + loop.dim] = i.addr();
-            if (r[loop.dim] != 2 && loop.after) {
-                dyn_var<int> im_i = *(curr_indices[img_st_idx + loop.dim]) * stride[loop.dim] + *(curr_indices[ker_st_idx + loop.dim]) * dilation[loop.dim];
-                if (im_i < pad[loop.dim]) continue; 
-                else if (im_i < orig[loop.dim] + pad[loop.dim]) {
+        if (loop.unrolled) {
+            dyn_var<int> init_curr_idx = *(curr_indices[st_idx + loop.dim]);
+            for (static_var<int> i = h_lo; i < h_hi; i = i + str) {
+                dyn_var<int> total = init_curr_idx + i;
+                curr_indices[st_idx + loop.dim] = total.addr();
+                loop_body(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims,
+                        pad, orig, r, img_bounds, ker_dims, in_channels, out_channels, ndims, img_st_idx, ker_st_idx);
+            }
+        } else {
+            builder::annotate(annotation);
+            for (dyn_var<int> i = h_lo + *(curr_indices[st_idx + loop.dim]); i < *(curr_indices[st_idx + loop.dim]) + h_hi; i = i + str) {
+                curr_indices[st_idx + loop.dim] = i.addr();
+                // loop_body(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims,
+                //         pad, orig, r, img_bounds, ker_dims, in_channels, out_channels, ndims, img_st_idx, ker_st_idx);
+                if (r[loop.dim] != 2 && loop.after) {
+                    dyn_var<int> im_i = *(curr_indices[img_st_idx + loop.dim]) * stride[loop.dim] + *(curr_indices[ker_st_idx + loop.dim]) * dilation[loop.dim];
+                    if (im_i < pad[loop.dim]) continue; 
+                    else if (im_i < orig[loop.dim] + pad[loop.dim]) {
+                        get_next_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims,
+                        pad, orig, r, img_bounds, ker_dims, in_channels, out_channels, ndims);
+                    } else break;
+                } else {
                     get_next_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims,
-                    pad, orig, r, img_bounds, ker_dims, in_channels, out_channels, ndims);
-                } else break;
-            } else {
-                get_next_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims,
-                    pad, orig, r, img_bounds, ker_dims, in_channels, out_channels, ndims);
+                        pad, orig, r, img_bounds, ker_dims, in_channels, out_channels, ndims);
+                }
             }
         }
     } else {
-        builder::annotate(annotation);
-        for (dyn_var<int> idx = *(curr_indices[loop_type]); idx < *(curr_indices[loop_type]) + loop.bound; idx = idx + loop.stride) {
-            curr_indices[loop_type] = idx.addr();
-            get_next_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims,
-                        pad, orig, r, img_bounds, ker_dims, in_channels, out_channels, ndims);
+        if (loop.unrolled) {
+            dyn_var<int> init_curr_idx = *(curr_indices[loop_type]);
+            for (static_var<int> idx = 0; idx < loop.bound; idx = idx + loop.stride) {
+                dyn_var<int> total = init_curr_idx + idx;
+                curr_indices[loop_type] = total.addr();
+                get_next_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims,
+                            pad, orig, r, img_bounds, ker_dims, in_channels, out_channels, ndims);
+            }
+        } else {
+            builder::annotate(annotation);
+            for (dyn_var<int> idx = *(curr_indices[loop_type]); idx < *(curr_indices[loop_type]) + loop.bound; idx = idx + loop.stride) {
+                curr_indices[loop_type] = idx.addr();
+                get_next_loop(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims,
+                            pad, orig, r, img_bounds, ker_dims, in_channels, out_channels, ndims);
+            }
         }
     }
 }
