@@ -1,7 +1,5 @@
-#!/bin/bash
 make
-./build/sample4
-cd test
-cmake --build build
-./build/buildit_conv_test
-cd ..
+./build/sample1
+./build/sample2
+cmake --build test/build
+./test/build/buildit_conv_test

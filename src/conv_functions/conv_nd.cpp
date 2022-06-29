@@ -172,9 +172,7 @@ void get_loops(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> outp
         annotation += " | #pragma omp parallel for collapse(" + std::to_string(loop.parallel_collapse) + ") ";
     } else if (loop.vectorized) {
         annotation += " | #pragma omp simd ";
-    } else if (loop.unrolled) {
-        // annotation += " | #pragma unroll";
-    }
+    } 
     int img_st_idx = 3;
     int ker_st_idx = img_st_idx + ndims;
     if (loop.type == LoopSchedule::loop_type::IMG && loop.tiled && !loop.last && r[loop.dim] != 2) {
@@ -206,9 +204,8 @@ void get_loops(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> outp
             builder::annotate(annotation);
             for (dyn_var<int> i = h_lo + *(curr_indices[st_idx + loop.dim]); i < *(curr_indices[st_idx + loop.dim]) + h_hi; i = i + str) {
                 curr_indices[st_idx + loop.dim] = i.addr();
-                // loop_body(input_data, weight_data, output_data, curr_indices, s, loop, curr_loop, annotation, stride, dilation, out_dims,
-                //         pad, orig, r, img_bounds, ker_dims, in_channels, out_channels, ndims, img_st_idx, ker_st_idx);
                 if (r[loop.dim] != 2 && loop.after) {
+                    // the kernel is partially overlapping the padded area, need to check for end points
                     dyn_var<int> im_i = *(curr_indices[img_st_idx + loop.dim]) * stride[loop.dim] + *(curr_indices[ker_st_idx + loop.dim]) * dilation[loop.dim];
                     if (im_i < pad[loop.dim]) continue; 
                     else if (im_i < orig[loop.dim] + pad[loop.dim]) {
@@ -222,6 +219,7 @@ void get_loops(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T*> outp
             }
         }
     } else {
+        // this section is for the batches, in and out channels loops
         if (loop.unrolled) {
             dyn_var<int> init_curr_idx = *(curr_indices[loop_type]);
             for (static_var<int> idx = 0; idx < loop.bound; idx = idx + loop.stride) {
@@ -269,6 +267,9 @@ void get_region_loops(dyn_var<T*> input_data, dyn_var<T*> weight_data, dyn_var<T
         }
     }
 
+/**
+ * The main function that generates convolution code.
+ */
 template <typename T>
 ImageT<T> conv_nd_main(dyn_var<T*> inp_data, dyn_var<T*> weight_data, int* orig_img_dims, int* ker_dims, 
                     int batch_size, int in_channels, int out_channels, int* stride, int* dilation, 
@@ -303,7 +304,8 @@ ImageT<T> conv_nd_main(dyn_var<T*> inp_data, dyn_var<T*> weight_data, int* orig_
         size = size * out_dims.get()[i];
 
         // image bounds for padding
-        get_bounds(img_bounds.get() + i * ndims * N_REGIONS, ker_bounds.get() + i * ndims * N_REGIONS, out_dims.get()[i], ker_dims[i], pad_dims.get()[i], stride[i], dilation[i], orig_img_dims[i], padded_img_dims.get()[i]);
+        get_bounds(img_bounds.get() + i * ndims * N_REGIONS, ker_bounds.get() + i * ndims * N_REGIONS, out_dims.get()[i], 
+            ker_dims[i], pad_dims.get()[i], stride[i], dilation[i], orig_img_dims[i], padded_img_dims.get()[i]);
 
     }
 

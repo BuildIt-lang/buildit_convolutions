@@ -4,7 +4,6 @@
 #include "builder/dyn_var.h"
 #include "blocks/rce.h"
 #include "conv_functions/conv_nd.h"
-#include "pipeline/conv.h"
 #include "pipeline/conv_code_generator.h"
 
 using builder::dyn_var;

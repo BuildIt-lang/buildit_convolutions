@@ -53,7 +53,6 @@ struct LoopSchedule {
 
     LoopSchedule* tile(int* dims, int n_subloops, LoopSchedule* subloops, int loop_len) {
         int total = 1;
-        // std::cout << bound << std::endl;
         for (int i = 0; i < n_subloops; i++) {
             total *= dims[i];
             subloops[i] = LoopSchedule(type, loop_len / total * dims[i]);
@@ -87,7 +86,6 @@ struct Schedule {
             img_found[i] = 0;
             ker_found[i] = 0;
         }
-        
         for (int i = 0; i < n_loops; i = i + 1) {
             LoopSchedule loop = loop_arr[i];
             if (!loop.last) continue;
